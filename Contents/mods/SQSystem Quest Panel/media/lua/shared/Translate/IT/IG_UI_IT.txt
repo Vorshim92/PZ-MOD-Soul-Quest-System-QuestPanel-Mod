@@ -1,0 +1,14 @@
+IGUI_IT = {
+
+	IGUI_XP_TaskStatus_Completed = "[COMPL.] ",
+	IGUI_XP_TaskStatus_Delivered = "[CONSEGNATA] ",
+	IGUI_XP_TaskStatus_Done = "[FATTO] "
+	IGUI_XP_TaskStatus_Failed = "[FALLITA] ",
+	IGUI_XP_TaskStatus_Obtained = "[OTTEN.] ",
+	IGUI_XP_TaskStatus_Updated = "[AGGIORNATO] ",
+
+    IGUI_Reputation = "Reputazione",
+    IGUI_Objectives = "Obiettivi:",
+
+
+}   

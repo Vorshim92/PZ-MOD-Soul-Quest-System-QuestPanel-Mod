@@ -1,0 +1,12 @@
+IGUI_EN = {
+IGUI_Factions_Daily_Tier1: "Locked",
+IGUI_Factions_Daily_Tier2: "Unlocked",
+IGUI_Factions_Daily_Tier3: "Active",
+IGUI_Factions_Daily_Tier4: "Completed",
+
+IGUI_Reputation = "Reputation",
+IGUI_Objectives = "Objectives:",
+
+
+
+}   
