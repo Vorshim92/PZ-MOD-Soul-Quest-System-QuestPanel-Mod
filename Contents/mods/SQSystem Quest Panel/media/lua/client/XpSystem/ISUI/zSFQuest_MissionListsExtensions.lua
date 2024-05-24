@@ -6,9 +6,6 @@ function SFQuest_QuestWindow:initialise()
 	ISCollapsableWindow.initialise(self);
 end
 
-function SFQuest_QuestWindow:titleBarHeight(selected)
-	return math.max(16, self.titleFontHgt + 1)
-end
 
 
 function SFQuest_QuestWindow:createChildren()
@@ -16,7 +13,7 @@ function SFQuest_QuestWindow:createChildren()
 	local titleBarHeight = self:titleBarHeight()
 
 	-- print("controllo loop in createchildren: " .. self.title)
-	self.richText = ISRichTextPanel:new(35, 45, 305,120);
+	self.richText = ISRichTextPanel:new(25, 40, 305, 120);
 	self.richText.autosetheight = false;
 	self.richText.clip = true
 	self.richText:initialise();
@@ -34,12 +31,13 @@ function SFQuest_QuestWindow:createChildren()
 	
 
 	if self.picture then
-	self.Image = ISButton:new(12, 50, 110, 85, " ", nil, nil);
+	-- self.Image = ISButton:new(12, 40, 95, 82, " ", nil, nil);
 	self.picTexture = getTexture(self.picture)
-	self.Image:setImage(self.picTexture)
-    self.Image:setVisible(true);
-	self.Image:setEnable(true);
-	self:addChild(self.Image)
+	-- self.Image:setImage(self.picTexture)
+    -- self.Image:setVisible(true);
+	-- self.Image:setEnable(true);
+	-- self:addChild(self.Image)
+		
     end
 	
 
@@ -384,6 +382,11 @@ function SFQuest_QuestWindow:render()
     self.richText:setVisible(true)
     self.richText:paginate()
     self:drawText(self.npcname, 12, 25, 1, 1, 1, 1, UIFont.Medium)
+
+    if self.picTexture then
+    self:drawTexture(self.picTexture, 12, 50, 1, 1, 1, 1);
+    self:drawRectBorder(12, 50, self.picTexture:getWidth(), self.picTexture:getHeight(), 0.5, 1, 1, 1);
+    end
 
     local textX = 280
     local rewardHeight = self.height - self.fontHeight - 10
