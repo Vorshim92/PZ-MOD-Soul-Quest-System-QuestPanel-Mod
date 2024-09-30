@@ -14,7 +14,7 @@ end
 
 function SFQuest_QuestWindow:createChildren()
 	ISCollapsableWindow.createChildren(self)
-	local titleBarHeight = self:titleBarHeight()
+	-- local titleBarHeight = self:titleBarHeight()
 
 	-- print("controllo loop in createchildren: " .. self.title)
 	self.richText = ISRichTextPanel:new(25, 40, 305, 120);
@@ -40,10 +40,7 @@ function SFQuest_QuestWindow:createChildren()
 	-- self.Image:setImage(self.picTexture)
     -- self.Image:setVisible(true);
 	-- self.Image:setEnable(true);
-	-- self:addChild(self.Image)
-		
-    else
-        self.picTexture = nil -- create a blank texture .png to use instead of nil
+	-- self:addChild(self.Image) 
     end
 	
 
@@ -88,86 +85,39 @@ function SFQuest_QuestWindow:createChildren()
             }
 
             if self.objectives[i].needsitem then
-                -- if self.objectives[i].icon then
-                --     -- Acquisisce directory icon
-                --     local iconPath = self.objectives[i].icon
-                --     if iconPath then
-                --         print("iconPath: " .. iconPath)
-                --         local iconTexture = getTexture(iconPath)
-                --         if iconTexture then
-                --             objectiveData.iconTexture = iconTexture
-                --         end
-                --     end
-                
-                    -- local newString = self.objectives[i].needsitem:gsub("Tag#", ""):gsub("^[^.]+%.", "")
-                    -- :gsub("Base%.", "")
-                    local needsTable = luautils.split(self.objectives[i].needsitem, ";")
-                    print("objNeedsItem: " .. needsTable[1])
-                    local needItem = getScriptManager():FindItem(needsTable[1])
-                    if needItem then
-                        print("needItem: " .. needItem:getName())
-                        print("needItem: " .. needItem:getFullName())
-                        print("needItem: " .. needItem:getIcon())
-                        print("needItem: " .. needItem:getModuleName())
-                        print("needItem: " .. tostring(needItem:getNormalTexture()))
-                        print("needItem: " .. needItem:getDisplayName())
-                        objectiveData.text = needItem:getDisplayName()
-                        local texture = needItem:getNormalTexture()
-                        if not texture then
-                            local obj = needItem:InstanceItem(nil);
-	                    	if obj then
-	                    		local icons = needItem:getIconsForTexture();
-	                    		if icons and icons:size() > 0 then
-	                    			texture = loadTexture(obj:getVisual():getBaseTexture(), icons) or loadTexture(obj:getVisual():getTextureChoice(), icons);
-                                    print("needItemTexture: texture found")
-                                    objectiveData.iconTexture = texture
-	                    		else
-	                    			texture = obj:getTexture();
-                                    print("needItemTexture: texture found")
-                                    objectiveData.iconTexture = texture
-	                    		end
-	                    	end
-	                    else 
-                            print("needItemTexture: texture found")
-                            objectiveData.iconTexture = texture
-                        end
-                        -- local icon = needItem:getIcon()
-                        -- if needItem:getIconsForTexture() and not needItem:getIconsForTexture():isEmpty() then
-                        --     print("needItem ha getIconsForTexture")
-                        --     icon = needItem:getIconsForTexture():get(0)
-                        -- end
-                        -- if icon then
-                        --     print("needItem icon: " .. icon)
-                        --     local needItemTex = getTexture("Item_" .. icon)
-                        --     if needItemTex then
-                        --         print("needItemTex: texture trovata")
-                        --         objectiveData.iconTexture = needItemTex
-                        --     else
-                        --         print("needItemTex: texture non trovata")
-                        --         needItemTex = getTexture("Item_" .. icon..".png")
-                        --         objectiveData.iconTexture = needItemTex
-                        --     end
-                        -- end
-                    -- else
-                    --     local allScriptItems = getScriptManager():getAllItems()
-                        -- for j = 1, allScriptItems:size() do
-                        --     local scriptItem = allScriptItems:get(j - 1)
-                        --     if string.find(scriptItem:getName(), "^" .. needsTable[1]) then
-                        --         local needItemIcon = scriptItem:getIcon()
-                        --         if scriptItem:getIconsForTexture() and not scriptItem:getIconsForTexture():isEmpty() then
-                        --             needItemIcon = scriptItem:getIconsForTexture():get(0)
-                        --         end
-                        --         if needItemIcon then
-                        --             local needItemTexture = getTexture("Item_" .. needItemIcon)
-                        --             if needItemTexture then
-                        --                 objectiveData.iconTexture = needItemTexture
-                        --             end
-                        --         end
-                        --         break
-                        --     end
-                        -- end
+                local needItem
+                local newString = self.objectives[i].needsitem:gsub("Tag#", "") --temp fix, need to implement other tags and a different way to obtain the iten for these tags
+                local needsTable = luautils.split(newString, ";")
+                if luautils.stringStarts(self.objectives[i].needsitem, "Tag#") then
+                    local itemsArray = getScriptManager():getItemsTag(needsTable[1])
+                    if itemsArray and itemsArray:size() > 0 then
+                        local random = ZombRand(0, itemsArray:size())
+                        needItem = itemsArray:get(random)
                     end
-                -- end
+                else
+                    needItem = getScriptManager():FindItem(needsTable[1])
+                end
+                if needItem then
+                    print("needItem trovato in obj: " .. needItem:getDisplayName())
+                    objectiveData.itemName = needItem:getDisplayName()
+                    objectiveData.itemCount = needsTable[2] or "1"
+                    local texture = needItem:getNormalTexture()
+                    if not texture then
+                        local obj = needItem:InstanceItem(nil);
+	                	if obj then
+	                		local icons = needItem:getIconsForTexture();
+	                		if icons and icons:size() > 0 then
+	                			texture = loadTexture(obj:getVisual():getBaseTexture(), icons) or loadTexture(obj:getVisual():getTextureChoice(), icons);
+                                objectiveData.iconTexture = texture
+	                		else
+	                			texture = obj:getTexture();
+                                objectiveData.iconTexture = texture
+	                		end
+	                	end
+	                else 
+                        objectiveData.iconTexture = texture
+                    end
+                end
             end
             
             table.insert(self.preprocessedObjectives, objectiveData)
@@ -175,26 +125,27 @@ function SFQuest_QuestWindow:createChildren()
     end
 
     self.preprocessedNeedsItems = {}
+    
     if self.needsitem then
-        -- local newString = self.needsitem:gsub("Tag#", ""):gsub("^[^.]+%.", "")
-        -- :gsub("Base%.", "")
-        local needsTable = luautils.split(self.needsitem, ";")
-
-        if needsTable and #needsTable > 0 then
-            print("needsTable: " .. needsTable[1])
-            local itemId = needsTable[1] -- ID dell'oggetto
+        -- local newString = self.needsitem:gsub("Tag#", "")
+        if self.needsitem then
+            local scriptItem
+            local newString = self.needsitem:gsub("Tag#", "") --temp fix, need to implement other tags and a different way to obtain the iten for these tags
+            local needsTable = luautils.split(newString, ";")
+            local itemId = needsTable[1] -- ID dell'oggetto or TagName
             local itemCount = needsTable[2]
-            local needsItemData = {itemId = itemId, itemCount = itemCount}
-
-            local scriptItem = getScriptManager():FindItem(itemId)
+            local needsItemData = {itemId = itemId, itemCount = itemCount or "1"}
+            if luautils.stringStarts(self.needsitem, "Tag#") then
+                local itemsArray = getScriptManager():getItemsTag(needsTable[1])
+                if itemsArray and itemsArray:size() > 0 then
+                    local random = ZombRand(0, itemsArray:size())
+                    scriptItem = itemsArray:get(random)
+                end
+            else
+                scriptItem = getScriptManager():FindItem(needsTable[1])
+            end
             
             if scriptItem then
-                print("scriptItem: " .. scriptItem:getName())
-                print("scriptItem: " .. scriptItem:getFullName())
-                print("scriptItem: " .. scriptItem:getIcon())
-                print("scriptItem: " .. scriptItem:getModuleName())
-                print("scriptItem: " .. tostring(scriptItem:getNormalTexture()))
-                print("scriptItem: " .. scriptItem:getDisplayName())
                 needsItemData.itemName = scriptItem:getDisplayName()
                 local texture = scriptItem:getNormalTexture()
                 if not texture then
@@ -203,33 +154,15 @@ function SFQuest_QuestWindow:createChildren()
 	            		local icons = scriptItem:getIconsForTexture();
 	            		if icons and icons:size() > 0 then
 	            			texture = loadTexture(obj:getVisual():getBaseTexture(), icons) or loadTexture(obj:getVisual():getTextureChoice(), icons);
-                            print("scriptitemTexture: texture found")
                             needsItemData.iconTexture = texture
 	            		else
 	            			texture = obj:getTexture();
-                            print("scriptitemTexture: texture found")
                             needsItemData.iconTexture = texture
 	            		end
 	            	end
 	            else 
-                    print("scriptitemTexture: texture found")
                     needsItemData.iconTexture = texture
                 end
-                -- local icon = scriptItem:getIcon()
-                -- if scriptItem:getIconsForTexture() and not scriptItem:getIconsForTexture():isEmpty() then
-                --     icon = scriptItem:getIconsForTexture():get(0)
-                -- end
-                -- if icon then
-                --     local needItemTex = getTexture("Item_" .. icon)
-                --     if needItemTex then
-                --         print("needItemTex: texture trovata")
-                --         needsItemData.iconTexture = needItemTex
-                --     else
-                --         print("needItemTex: texture non trovata")
-                --         needItemTex = getTexture("Item_" .. icon..".png")
-                --         needsItemData.iconTexture = needItemTex
-                --     end
-                -- end
             end
             table.insert(self.preprocessedNeedsItems, needsItemData)
         end
@@ -247,50 +180,35 @@ function SFQuest_QuestWindow:createChildren()
     end
 
     if self.awardsitem then
-        local newString = self.awardsitem:gsub("Tag#", ""):gsub("^[^.]+%.", "")
+        -- local newString = self.awardsitem:gsub("Tag#", "")
         -- :gsub("Base%.", "")
-        local rewardTable = luautils.split(newString, ";")
+        local rewardTable = luautils.split(self.awardsitem, ";")
 
-        for i = 1, #rewardTable, 2 do
-            local itemId = rewardTable[i]
-            local itemCount = rewardTable[i + 1] or "1"
+        if rewardTable and #rewardTable > 0 then
+            local itemId = rewardTable[1]
+            local itemCount = rewardTable[2] or "1"
             local rewardData = {itemId = itemId, itemCount = itemCount}
 
             local scriptItem = getScriptManager():FindItem(itemId)
             if scriptItem then
                 rewardData.itemName = scriptItem:getDisplayName()
-                local icon = scriptItem:getIcon()
-                print("icon: " .. icon)
-                if scriptItem:getIconsForTexture() and not scriptItem:getIconsForTexture():isEmpty() then
-                    icon = scriptItem:getIconsForTexture():get(0)
+                local texture = scriptItem:getNormalTexture()
+                if not texture then
+                    local obj = scriptItem:InstanceItem(nil);
+	            	if obj then
+	            		local icons = scriptItem:getIconsForTexture();
+	            		if icons and icons:size() > 0 then
+	            			texture = loadTexture(obj:getVisual():getBaseTexture(), icons) or loadTexture(obj:getVisual():getTextureChoice(), icons);
+                            rewardData.iconTexture = texture
+	            		else
+	            			texture = obj:getTexture();
+                            rewardData.iconTexture = texture
+	            		end
+	            	end
+	            else 
+                    rewardData.iconTexture = texture
                 end
-                if icon then
-                    local itemTexture = getTexture("Item_" .. icon)
-                    if itemTexture then
-                        rewardData.iconTexture = itemTexture
-                    end
-                end
-            else
-                local allScriptItems = getScriptManager():getAllItems()
-                for j = 1, allScriptItems:size() do
-                    local itemScript = allScriptItems:get(j - 1)
-                    if string.find(itemScript:getName(), "^" .. itemId) then
-                        rewardData.itemName = itemScript:getDisplayName()
-                        local needItemIcon = itemScript:getIcon()
-                        if itemScript:getIconsForTexture() and not itemScript:getIconsForTexture():isEmpty() then
-                            needItemIcon = itemScript:getIconsForTexture():get(0)
-                        end
-                        if needItemIcon then
-                            local needItemTexture = getTexture("Item_" .. needItemIcon)
-                            if needItemTexture then
-                                rewardData.iconTexture = needItemTexture
-                            end
-                        end
-                        break
-                    end
-                end
-            end
-
+            end     
             table.insert(self.preprocessedRewards, rewardData)
         end
     end
@@ -352,7 +270,7 @@ local function drawNeededItems(self, needsItems, textX, needsHeight)
         if iconTexture then
             self:drawTextureScaledAspect2(iconTexture, textX - 20, needsHeight, 20, 20, 1, 1, 1, 1)
         end
-        self:drawText(itemName .. "  X " .. itemCount, textX + 5, needsHeight + 2, 1, 1, 1, 1, UIFont.Normal)
+        self:drawText(itemName .. "  X " .. itemCount, textX + 5, needsHeight + 2, 1, 1, 1, 1, UIFont.Normal) -- TO DO inserire anche qui status quest?
         needsHeight = needsHeight - 20
     end
 
@@ -368,23 +286,28 @@ local function drawObjectives(self, preprocessedObjectives, objectives, textX, n
             if preprocessedObjectives[i].iconTexture then
                 self:drawTextureScaledAspect2(preprocessedObjectives[i].iconTexture, textX-20, needsHeight, 20, 20, 1, 1, 1, 1)
             end
-
             local objtext = getText(preprocessedObjectives[i].text)
+            local objstatus
+            if objectives[i] and objectives[i].needsitem then
+                local itemCount = preprocessedObjectives[i].itemCount
+                objtext = (preprocessedObjectives[i].itemName .. "  X " .. itemCount)
+            end
             local r, g, b = 0.5, 0.5, 0.5
             if not self.greyed then
                 r, g, b = 1.0, 1.0, 1.0
             end
             if objectives[i].status then
-                objtext = getText("IGUI_XP_TaskStatus_" .. objectives[i].status) .. getText(preprocessedObjectives[i].text)
+                objstatus = getText("IGUI_XP_TaskStatus_" .. objectives[i].status)
+                objtext = objstatus .. " " .. objtext
                 if objectives[i].status == "Failed" then
                     r, g, b = 1.0, 0.25, 0.25
                 elseif objectives[i].status == "Delivered" then
                     r, g, b = 0.5, 0.5, 0.5
                 end
             end
-            self:drawText(objtext, textX + 5, needsHeight + 2, r, g, b, 1, UIFont.Normal)
+            self:drawText(objtext, textX + 5, needsHeight + 2, 1, r, g, b, UIFont.Normal)
+            needsHeight = needsHeight - 20
         end
-        needsHeight = needsHeight - 20
     end
     return needsHeight
 end
@@ -498,7 +421,7 @@ end
 
 function SFQuest_QuestWindow:new(x, y, item)
 	-- print("controllo loop in new: " .. item.text)
-	-- valori pannello
+    -- this will be much more easy if we can get from the task the npc's identity, so we can use SF_MissionPanel.instance:getWorldInfo(identity);
 	local width = 420
 	local height = 250
 	local o = ISCollapsableWindow:new(x, y, width, height)
@@ -511,8 +434,11 @@ function SFQuest_QuestWindow:new(x, y, item)
 
 	-- valori quest
 	o.dialogueinfo = item.lore;
-	local nuovaStringa = string.gsub(item.texture, 'Item', 'Picture')
-	o.picture = nuovaStringa
+	local pictureConversion = string.gsub(item.texture, 'Item', 'Picture')
+    if not pictureConversion then
+        pictureConversion = "media/textures/Picture_Default.png"
+    end
+	o.picture = pictureConversion
 	o.awardsrep = item.awardsrep
 	o.awardsitem = item.awardsitem
 	o.awardstask = item.awardstask
