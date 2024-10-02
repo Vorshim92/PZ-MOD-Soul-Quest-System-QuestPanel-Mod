@@ -78,7 +78,7 @@ function SFQuest_QuestWindow:createChildren()
     self.preprocessedObjectives = {}
     if self.objectives and #self.objectives > 0 then
         for i = 1, #self.objectives do
-            print("Objective: " .. self.objectives[i].text)
+            -- print("Objective: " .. self.objectives[i].text)
             local objectiveData = {
                 text = self.objectives[i].text,
                 hidden = self.objectives[i].hidden
@@ -86,9 +86,11 @@ function SFQuest_QuestWindow:createChildren()
 
             if self.objectives[i].needsitem then
                 local needItem
-                local newString = self.objectives[i].needsitem:gsub("Tag#", "") --temp fix, need to implement other tags and a different way to obtain the iten for these tags
+                local newString = self.objectives[i].needsitem
+                newString = newString:gsub("Tag.-#", ""):gsub("Predicate.-#", "")
+
                 local needsTable = luautils.split(newString, ";")
-                if luautils.stringStarts(self.objectives[i].needsitem, "Tag#") then
+                if luautils.stringStarts(self.objectives[i].needsitem, "Tag") then
                     local itemsArray = getScriptManager():getItemsTag(needsTable[1])
                     if itemsArray and itemsArray:size() > 0 then
                         local random = ZombRand(0, itemsArray:size())
@@ -98,7 +100,7 @@ function SFQuest_QuestWindow:createChildren()
                     needItem = getScriptManager():FindItem(needsTable[1])
                 end
                 if needItem then
-                    print("needItem trovato in obj: " .. needItem:getDisplayName())
+                    -- print("needItem trovato in obj: " .. needItem:getDisplayName())
                     objectiveData.itemName = needItem:getDisplayName()
                     objectiveData.itemCount = needsTable[2] or "1"
                     local texture = needItem:getNormalTexture()
@@ -130,12 +132,13 @@ function SFQuest_QuestWindow:createChildren()
         -- local newString = self.needsitem:gsub("Tag#", "")
         if self.needsitem then
             local scriptItem
-            local newString = self.needsitem:gsub("Tag#", "") --temp fix, need to implement other tags and a different way to obtain the iten for these tags
+            local newString = self.objectives[i].needsitem
+            newString = newString:gsub("Tag.-#", ""):gsub("Predicate.-#", "")
             local needsTable = luautils.split(newString, ";")
-            local itemId = needsTable[1] -- ID dell'oggetto or TagName
+            local itemId = needsTable[1]
             local itemCount = needsTable[2]
             local needsItemData = {itemId = itemId, itemCount = itemCount or "1"}
-            if luautils.stringStarts(self.needsitem, "Tag#") then
+            if luautils.stringStarts(self.needsitem, "Tag") then
                 local itemsArray = getScriptManager():getItemsTag(needsTable[1])
                 if itemsArray and itemsArray:size() > 0 then
                     local random = ZombRand(0, itemsArray:size())
@@ -180,8 +183,6 @@ function SFQuest_QuestWindow:createChildren()
     end
 
     if self.awardsitem then
-        -- local newString = self.awardsitem:gsub("Tag#", "")
-        -- :gsub("Base%.", "")
         local rewardTable = luautils.split(self.awardsitem, ";")
 
         if rewardTable and #rewardTable > 0 then
