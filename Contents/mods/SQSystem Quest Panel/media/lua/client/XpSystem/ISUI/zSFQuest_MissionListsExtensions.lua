@@ -127,48 +127,44 @@ function SFQuest_QuestWindow:createChildren()
     end
 
     self.preprocessedNeedsItems = {}
-    
     if self.needsitem then
-        -- local newString = self.needsitem:gsub("Tag#", "")
-        if self.needsitem then
-            local scriptItem
-            local newString = self.objectives[i].needsitem
-            newString = newString:gsub("Tag.-#", ""):gsub("Predicate.-#", "")
-            local needsTable = luautils.split(newString, ";")
-            local itemId = needsTable[1]
-            local itemCount = needsTable[2]
-            local needsItemData = {itemId = itemId, itemCount = itemCount or "1"}
-            if luautils.stringStarts(self.needsitem, "Tag") then
-                local itemsArray = getScriptManager():getItemsTag(needsTable[1])
-                if itemsArray and itemsArray:size() > 0 then
-                    local random = ZombRand(0, itemsArray:size())
-                    scriptItem = itemsArray:get(random)
-                end
-            else
-                scriptItem = getScriptManager():FindItem(needsTable[1])
+        local scriptItem
+        local newString = self.needsitem
+        newString = newString:gsub("Tag.-#", ""):gsub("Predicate.-#", "")
+        local needsTable = luautils.split(newString, ";")
+        local itemId = needsTable[1]
+        local itemCount = needsTable[2]
+        local needsItemData = {itemId = itemId, itemCount = itemCount or "1"}
+        if luautils.stringStarts(self.needsitem, "Tag") then
+            local itemsArray = getScriptManager():getItemsTag(needsTable[1])
+            if itemsArray and itemsArray:size() > 0 then
+                local random = ZombRand(0, itemsArray:size())
+                scriptItem = itemsArray:get(random)
             end
-            
-            if scriptItem then
-                needsItemData.itemName = scriptItem:getDisplayName()
-                local texture = scriptItem:getNormalTexture()
-                if not texture then
-                    local obj = scriptItem:InstanceItem(nil);
-	            	if obj then
-	            		local icons = scriptItem:getIconsForTexture();
-	            		if icons and icons:size() > 0 then
-	            			texture = loadTexture(obj:getVisual():getBaseTexture(), icons) or loadTexture(obj:getVisual():getTextureChoice(), icons);
-                            needsItemData.iconTexture = texture
-	            		else
-	            			texture = obj:getTexture();
-                            needsItemData.iconTexture = texture
-	            		end
-	            	end
-	            else 
-                    needsItemData.iconTexture = texture
-                end
-            end
-            table.insert(self.preprocessedNeedsItems, needsItemData)
+        else
+            scriptItem = getScriptManager():FindItem(needsTable[1])
         end
+        
+        if scriptItem then
+            needsItemData.itemName = scriptItem:getDisplayName()
+            local texture = scriptItem:getNormalTexture()
+            if not texture then
+                local obj = scriptItem:InstanceItem(nil);
+	        	if obj then
+	        		local icons = scriptItem:getIconsForTexture();
+	        		if icons and icons:size() > 0 then
+	        			texture = loadTexture(obj:getVisual():getBaseTexture(), icons) or loadTexture(obj:getVisual():getTextureChoice(), icons);
+                        needsItemData.iconTexture = texture
+	        		else
+	        			texture = obj:getTexture();
+                        needsItemData.iconTexture = texture
+	        		end
+	        	end
+	        else 
+                needsItemData.iconTexture = texture
+            end
+        end
+        table.insert(self.preprocessedNeedsItems, needsItemData)
     end
 
     self.preprocessedRewards = {}
@@ -214,7 +210,6 @@ function SFQuest_QuestWindow:createChildren()
         end
     end
 end
-	
 
 
 
