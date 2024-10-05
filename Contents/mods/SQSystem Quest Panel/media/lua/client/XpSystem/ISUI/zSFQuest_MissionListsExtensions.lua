@@ -32,7 +32,8 @@ function SFQuest_QuestWindow:createChildren()
 	self.richText:addScrollBars()
     -- self.richText.vscroll.x + 5
 	self:addChild(self.richText);
-	
+    --test
+	self.originalTitle = self.title
 
 	if self.picture then
 	-- self.Image = ISButton:new(12, 40, 95, 82, " ", nil, nil);
@@ -268,7 +269,7 @@ local function drawNeededItems(self, needsItems, status, textX, needsHeight)
         end
 
         if iconTexture then
-            self:drawTextureScaledAspect2(iconTexture, textX - 20, needsHeight, 20, 20, 1, 1, 1, 1)
+            self:drawTextureScaledAspect2(iconTexture, textX - 20, needsHeight, 16, 16, 1, 1, 1, 1)
         end
         self:drawText(itemName .. "  X " .. itemCount, textX + 5, needsHeight + 2, 1, 1, 1, 1, UIFont.Normal) -- TO DO inserire anche qui status quest?
         needsHeight = needsHeight - 20
@@ -284,7 +285,7 @@ local function drawObjectives(self, preprocessedObjectives, objectives, textX, n
     for i = 1, #preprocessedObjectives do
         if not preprocessedObjectives[i].hidden then
             if preprocessedObjectives[i].iconTexture then
-                self:drawTextureScaledAspect2(preprocessedObjectives[i].iconTexture, textX-20, needsHeight, 20, 20, 1, 1, 1, 1)
+                self:drawTextureScaledAspect2(preprocessedObjectives[i].iconTexture, textX-16, needsHeight+ 2, 16, 16, 1, 1, 1, 1)
             end
             local objtext = getText(preprocessedObjectives[i].text)
             local objstatus
@@ -305,7 +306,7 @@ local function drawObjectives(self, preprocessedObjectives, objectives, textX, n
                     r, g, b = 0.5, 0.5, 0.5
                 end
             end
-            self:drawText(objtext, textX + 5, needsHeight + 2, 1, r, g, b, UIFont.Normal)
+            self:drawText(objtext, textX + 5, needsHeight+ 2, 1, r, g, b, UIFont.Normal)
             needsHeight = needsHeight - 20
         end
     end
@@ -315,13 +316,52 @@ end
 
 
 
+
 -- Funzione render
 function SFQuest_QuestWindow:render()
     ISCollapsableWindow.render(self)
-	-- if self.status then
-	-- 	self.title = getText("IGUI_XP_TaskStatus_" .. self.status) .. " " .. self.title
-	-- end
-    if self.isCollapsed then return end
+    -- local height = self:getHeight();
+	-- local th = self:titleBarHeight()
+	-- if self.isCollapsed then
+	-- 	height = th;
+    -- end
+    local textX = 280
+    local rewardHeight = self.height - self.fontHeight - 10
+    local needsHeight = self.height - self.fontHeight - 10
+    local fixPosX = 20
+    local fixPosXImg = 20
+    local hasRewards = false
+    local hasNeeds = false
+    local hasObjs = false
+    -- if self.status then
+    --     self.title = getText("IGUI_XP_TaskStatus_" .. self.status) .. " " .. self.title
+    -- end
+    if self.isCollapsed then
+        if self.hasZombieCounter then
+            if #self.title > 30 then
+                self:setTitle(string.sub(self.title, 1, 20) .. "...")
+                -- self:setTitle(string.sub(self.title, 1, 20) .. "...")
+            end
+            local player = getPlayer()
+            if player then
+                local newCurrentKills = player:getZombieKills()
+                if newCurrentKills > self.currentKills then
+                    self.currentKills = self.currentKills + (newCurrentKills - self.currentKills)
+                    if self.currentKills - (self.tempGoal - self.goal) >= self.goal then
+                        self.hasZombieCounter = false
+                    else
+                        self.hasZombieCounter = true
+                    end
+                end
+            end
+            self:drawTextureScaledAspect2(self.zombieTexture, 280, 2, 16, 16, 1, 1, 1, 1)
+            self:drawText("Zombie: " .. tostring(self.currentKills - (self.tempGoal - self.goal)) .. "/" .. tostring(self.goal), 300, 3, 1, 1, 1, 1, self.font)
+            -- self:drawText(getText("IGUI_Objectives"), 30, 25, 1, 1, 1, 1, UIFont.Medium)
+        end
+        return
+    else 
+        self:setTitle(self.originalTitle)
+    end
     
 
     self.richText:setX(10 + self.picTexture:getWidth())
@@ -335,14 +375,6 @@ function SFQuest_QuestWindow:render()
     self:drawRectBorder(12, 50, self.picTexture:getWidth(), self.picTexture:getHeight(), 0.5, 1, 1, 1);
     end
 
-    local textX = 280
-    local rewardHeight = self.height - self.fontHeight - 10
-    local needsHeight = self.height - self.fontHeight - 10
-    local fixPosX = 20
-    local fixPosXImg = 20
-    local hasRewards = false
-    local hasNeeds = false
-    local hasObjs = false
 
     if self.preprocessedRewards and #self.preprocessedRewards > 0 then
         hasRewards, rewardHeight = drawRewards(self, self.preprocessedRewards, textX-10, rewardHeight)
@@ -372,24 +404,6 @@ function SFQuest_QuestWindow:render()
     end
 
 
-    -- Disegna gli obiettivi
-    if self.preprocessedObjectives and #self.preprocessedObjectives > 0 then
-        hasObjs = true
-        if self.awardsitem or self.awardsrep then
-            needsHeight = rewardHeight + 20
-        end
-        
-        needsHeight = drawObjectives(self, self.preprocessedObjectives, self.objectives, fixPosX+5, needsHeight)
-        if self.hasZombieCounter then
-            self:drawTextureScaledAspect2(self.zombieTexture, fixPosX - 10, needsHeight, 20, 20, 1, 1, 1, 1)
-            self:drawText("Zombie: " .. tostring(self.currentKills - (self.tempGoal - self.goal)) .. "/" .. tostring(self.goal), fixPosX+10, needsHeight + 4, 1, 1, 1, 1, self.font)
-            needsHeight = needsHeight - 20
-        end
-        if hasObjs then
-            self:drawText(getText("IGUI_Objectives"), fixPosX + 10, needsHeight -5, 1, 1, 1, 1, UIFont.Medium)
-        end
-    end
-
     if self.hasZombieCounter then
         local player = getPlayer()
         if player then
@@ -406,10 +420,30 @@ function SFQuest_QuestWindow:render()
 
         if not self.objectives then
             self:drawText(getText("IGUI_Objectives"),  fixPosX+10, needsHeight -20, 1, 1, 1, 1, UIFont.Medium)
-            self:drawTextureScaledAspect2(self.zombieTexture, fixPosX - 10, needsHeight, 20, 20, 1, 1, 1, 1)
+            self:drawTextureScaledAspect2(self.zombieTexture, fixPosX - 10, needsHeight+2, 16, 16, 1, 1, 1, 1)
             self:drawText("Zombie: " .. tostring(self.currentKills - (self.tempGoal - self.goal)) .. "/" .. tostring(self.goal),  fixPosX+10, needsHeight + 4, 1, 1, 1, 1, self.font)
         end
     end
+
+    -- Disegna gli obiettivi
+    if self.preprocessedObjectives and #self.preprocessedObjectives > 0 then
+        hasObjs = true
+        if self.awardsitem or self.awardsrep then
+            needsHeight = rewardHeight + 20
+        end
+        
+        needsHeight = drawObjectives(self, self.preprocessedObjectives, self.objectives, fixPosX+5, needsHeight)
+        if self.hasZombieCounter then
+            self:drawTextureScaledAspect2(self.zombieTexture, fixPosX - 10, needsHeight+2, 16, 16, 1, 1, 1, 1)
+            self:drawText("Zombie: " .. tostring(self.currentKills - (self.tempGoal - self.goal)) .. "/" .. tostring(self.goal), fixPosX+10, needsHeight + 4, 1, 1, 1, 1, self.font)
+            needsHeight = needsHeight - 20
+        end
+        if hasObjs then
+            self:drawText(getText("IGUI_Objectives"), fixPosX + 10, needsHeight -5, 1, 1, 1, 1, UIFont.Medium)
+        end
+    end
+
+    
 end
 
 
