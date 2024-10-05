@@ -256,12 +256,16 @@ local function drawRewards(self, rewards, textX, rewardHeight)
 end
 
 
-local function drawNeededItems(self, needsItems, textX, needsHeight)
+local function drawNeededItems(self, needsItems, status, textX, needsHeight)
     for i = 1, #needsItems do
         local itemId = needsItems[i].itemId
         local itemCount = needsItems[i].itemCount
         local itemName = needsItems[i].itemName or itemId
         local iconTexture = needsItems[i].iconTexture
+        if status then
+           local objstatus = getText("IGUI_XP_TaskStatus_" .. status)
+           itemName = objstatus .. " " .. itemName
+        end
 
         if iconTexture then
             self:drawTextureScaledAspect2(iconTexture, textX - 20, needsHeight, 20, 20, 1, 1, 1, 1)
@@ -360,7 +364,7 @@ function SFQuest_QuestWindow:render()
         if self.awardsitem or self.awardsrep then
             needsHeight = rewardHeight + 20
         end
-        needsHeight = drawNeededItems(self, self.preprocessedNeedsItems, fixPosX+5, needsHeight)
+        needsHeight = drawNeededItems(self, self.preprocessedNeedsItems, self.status, fixPosX+5, needsHeight)
         hasNeeds = true
     end
     if hasNeeds then
@@ -377,6 +381,7 @@ function SFQuest_QuestWindow:render()
         
         needsHeight = drawObjectives(self, self.preprocessedObjectives, self.objectives, fixPosX+5, needsHeight)
         if self.hasZombieCounter then
+            self:drawTextureScaledAspect2(self.zombieTexture, fixPosX - 10, needsHeight+ 4, 20, 20, 1, 1, 1, 1)
             self:drawText("Zombie: " .. tostring(self.currentKills - (self.tempGoal - self.goal)) .. "/" .. tostring(self.goal), fixPosX+10, needsHeight + 4, 1, 1, 1, 1, self.font)
             needsHeight = needsHeight - 20
         end
@@ -400,8 +405,9 @@ function SFQuest_QuestWindow:render()
         end
 
         if not self.objectives then
-            self:drawText(getText("IGUI_Objectives"),  fixPosX, needsHeight -20, 1, 1, 1, 1, UIFont.Medium)
-            self:drawText("Zombie: " .. tostring(self.currentKills - (self.tempGoal - self.goal)) .. "/" .. tostring(self.goal),  fixPosX, needsHeight + 4, 1, 1, 1, 1, self.font)
+            self:drawText(getText("IGUI_Objectives"),  fixPosX+10, needsHeight -20, 1, 1, 1, 1, UIFont.Medium)
+            self:drawTextureScaledAspect2(self.zombieTexture, fixPosX - 10, needsHeight, 20, 20, 1, 1, 1, 1)
+            self:drawText("Zombie: " .. tostring(self.currentKills - (self.tempGoal - self.goal)) .. "/" .. tostring(self.goal),  fixPosX+10, needsHeight + 4, 1, 1, 1, 1, self.font)
         end
     end
 end
@@ -446,9 +452,11 @@ function SFQuest_QuestWindow:new(x, y, item)
 	o.goal = 0;
 	o.currentKills = 0;
 	o.hasZombieCounter = false;
+    o.zombieTexture = getTexture("media/ui/Moodle_Icon_Zombie.png")
 	-- fine sezione
 	o.guid = item.guid
 	o.title = getText(item.text) or "????";
+    o.status = item.status or nil
 	if item.status then
 		o.title = getText("IGUI_XP_TaskStatus_" .. item.status) .. getText(item.text);
 	end
