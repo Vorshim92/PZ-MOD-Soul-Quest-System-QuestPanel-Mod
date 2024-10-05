@@ -381,7 +381,7 @@ function SFQuest_QuestWindow:render()
         
         needsHeight = drawObjectives(self, self.preprocessedObjectives, self.objectives, fixPosX+5, needsHeight)
         if self.hasZombieCounter then
-            self:drawTextureScaledAspect2(self.zombieTexture, fixPosX - 10, needsHeight+ 4, 20, 20, 1, 1, 1, 1)
+            self:drawTextureScaledAspect2(self.zombieTexture, fixPosX - 10, needsHeight, 20, 20, 1, 1, 1, 1)
             self:drawText("Zombie: " .. tostring(self.currentKills - (self.tempGoal - self.goal)) .. "/" .. tostring(self.goal), fixPosX+10, needsHeight + 4, 1, 1, 1, 1, self.font)
             needsHeight = needsHeight - 20
         end
