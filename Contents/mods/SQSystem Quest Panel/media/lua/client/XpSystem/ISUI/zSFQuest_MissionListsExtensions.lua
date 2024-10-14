@@ -52,7 +52,7 @@ function SFQuest_QuestWindow:createChildren()
             self.goal = tonumber(unlocksTable[3])
         end
         local player = getPlayer()
-        for k,v in pairs(player:getModData().missionProgress.ActionEvent) do
+        for i,v in ipairs(player:getModData().missionProgress.ActionEvent) do
             local commands = luautils.split(v.commands, ";");
             if luautils.stringStarts(self.guid, commands[2]) then
                 self.tempGoal = tonumber(luautils.split(v.condition, ";")[2])
@@ -91,14 +91,22 @@ function SFQuest_QuestWindow:createChildren()
                 newString = newString:gsub("Tag.-#", ""):gsub("Predicate.-#", "")
 
                 local needsTable = luautils.split(newString, ";")
+                -- print("needsTable item: " .. needsTable[1])
+                -- print("needsTable count: " .. needsTable[2])
                 if luautils.stringStarts(self.objectives[i].needsitem, "Tag") then
                     local itemsArray = getScriptManager():getItemsTag(needsTable[1])
                     if itemsArray and itemsArray:size() > 0 then
-                        local random = ZombRand(0, itemsArray:size())
-                        needItem = itemsArray:get(random)
+                        -- local random = ZombRand(0, itemsArray:size())
+                        needItem = itemsArray:get(0)
                     end
                 else
                     needItem = getScriptManager():FindItem(needsTable[1])
+                    if not needItem then
+                        local javaItem = getScriptManager():getItemsByType(needsTable[1])
+                        if javaItem and javaItem:size() > 0 then
+                            needItem = javaItem:get(0)
+                        end
+                    end
                 end
                 if needItem then
                     -- print("needItem trovato in obj: " .. needItem:getDisplayName())
@@ -139,11 +147,17 @@ function SFQuest_QuestWindow:createChildren()
         if luautils.stringStarts(self.needsitem, "Tag") then
             local itemsArray = getScriptManager():getItemsTag(needsTable[1])
             if itemsArray and itemsArray:size() > 0 then
-                local random = ZombRand(0, itemsArray:size())
-                scriptItem = itemsArray:get(random)
+                -- local random = ZombRand(0, itemsArray:size())
+                scriptItem = itemsArray:get(0)
             end
         else
             scriptItem = getScriptManager():FindItem(needsTable[1])
+            if not scriptItem then
+                local javaItem = getScriptManager():getItemsByType(needsTable[1])
+                if javaItem and javaItem:size() > 0 then
+                    scriptItem = javaItem:get(0)
+                end
+            end
         end
         
         if scriptItem then
@@ -283,6 +297,7 @@ end
 
 local function drawObjectives(self, preprocessedObjectives, objectives, textX, needsHeight)
     for i = 1, #preprocessedObjectives do
+        -- print(tostring(preprocessedObjectives[i]))
         if not preprocessedObjectives[i].hidden then
             if preprocessedObjectives[i].iconTexture then
                 self:drawTextureScaledAspect2(preprocessedObjectives[i].iconTexture, textX-16, needsHeight+ 2, 16, 16, 1, 1, 1, 1)
@@ -290,8 +305,13 @@ local function drawObjectives(self, preprocessedObjectives, objectives, textX, n
             local objtext = getText(preprocessedObjectives[i].text)
             local objstatus
             if objectives[i] and objectives[i].needsitem then
-                local itemCount = preprocessedObjectives[i].itemCount
-                objtext = (preprocessedObjectives[i].itemName .. "  X " .. itemCount)
+                -- luautils.split(objectives[i].needsitem, ";")[2]
+                if not preprocessedObjectives[i].itemName or not preprocessedObjectives[i].itemCount then
+                    local needsitemTable = luautils.split(objectives[i].needsitem, ";")
+                    objtext = (needsitemTable[1] .. " X " .. needsitemTable[2] )
+                else
+                objtext = (preprocessedObjectives[i].itemName .. " X " .. preprocessedObjectives[i].itemCount )
+                end
             end
             local r, g, b = 0.5, 0.5, 0.5
             if not self.greyed then
