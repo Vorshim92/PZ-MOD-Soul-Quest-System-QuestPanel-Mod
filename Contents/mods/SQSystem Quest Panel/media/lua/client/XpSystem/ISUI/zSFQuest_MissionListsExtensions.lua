@@ -193,7 +193,8 @@ function SFQuest_QuestWindow:createChildren()
         end
     end
 
-    if self.awardsitem then
+    if self.awardsitem then --inserire while rewardTable[count] do in caso ci sia più di un item come reward!! (prendere spunto da WorldEventWindow)
+        local count = 1
         local rewardTable = luautils.split(self.awardsitem, ";")
 
         if rewardTable and #rewardTable > 0 then
@@ -202,8 +203,21 @@ function SFQuest_QuestWindow:createChildren()
             local rewardData = {itemId = itemId, itemCount = itemCount}
 
             local scriptItem = getScriptManager():FindItem(itemId)
+            if not scriptItem then
+                local javaItem = getScriptManager():getItemsByType(rewardTable[1])
+                if javaItem and javaItem:size() > 0 then
+                    scriptItem = javaItem:get(0)
+                end
+            end
             if scriptItem then
                 rewardData.itemName = scriptItem:getDisplayName()
+                -- fix for panel width dimension issue
+                local textWidth = getTextManager():MeasureStringX(UIFont.Normal, rewardData.itemName)
+                -- print(textWidth)
+                if textWidth > 123 then
+                    self:setWidth(self.width+ textWidth-123)
+                end
+                -- fix for panel width dimension issue
                 local texture = scriptItem:getNormalTexture()
                 if not texture then
                     local obj = scriptItem:InstanceItem(nil);
@@ -222,6 +236,39 @@ function SFQuest_QuestWindow:createChildren()
                 end
             end     
             table.insert(self.preprocessedRewards, rewardData)
+            count = 3;
+            while rewardTable[count] do
+                local itemCount = rewardTable[count + 1] or "1"
+                local rewardData = {itemId = itemId, itemCount = itemCount}
+                local scriptItem = getScriptManager():FindItem(rewardTable[count]);
+                if scriptItem then
+                    rewardData.itemName = scriptItem:getDisplayName()
+                    -- fix for panel width dimension issue
+                    local textWidth = getTextManager():MeasureStringX(UIFont.Normal, rewardData.itemName)
+                    if textWidth > 123 then
+                        self:setWidth(self.width+ textWidth-123)
+                    end
+                    -- fix for panel width dimension issue
+                    local texture = scriptItem:getNormalTexture()
+                    if not texture then
+                        local obj = scriptItem:InstanceItem(nil);
+	                	if obj then
+	                		local icons = scriptItem:getIconsForTexture();
+	                		if icons and icons:size() > 0 then
+	                			texture = loadTexture(obj:getVisual():getBaseTexture(), icons) or loadTexture(obj:getVisual():getTextureChoice(), icons);
+                                rewardData.iconTexture = texture
+	                		else
+	                			texture = obj:getTexture();
+                                rewardData.iconTexture = texture
+	                		end
+	                	end
+	                else 
+                        rewardData.iconTexture = texture
+                    end
+                end     
+            table.insert(self.preprocessedRewards, rewardData)
+            count = count + 2;
+            end
         end
     end
 end
@@ -252,6 +299,7 @@ local function drawItemRewards(self, reward, textX, rewardHeight)
         self:drawTextureScaledAspect(reward.iconTexture, textX - 20, rewardHeight, 20, 20, 1, 1, 1, 1)
     end
     local itemName = reward.itemName or reward.itemId
+    
     self:drawText(itemName .. "  X " .. reward.itemCount, textX, rewardHeight + 2, 1, 1, 1, 1, UIFont.Normal)
     return rewardHeight - 20
 end
