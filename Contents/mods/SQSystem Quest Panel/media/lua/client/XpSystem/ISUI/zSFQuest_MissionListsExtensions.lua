@@ -12,6 +12,22 @@ local function loadTexture(id, icons)
     end
 end
 
+local function getRealTexture(scriptItem)
+	local texture = scriptItem:getNormalTexture()
+	if not texture then
+		local obj = scriptItem:InstanceItem(nil)
+		if obj then
+			local icons = scriptItem:getIconsForTexture()
+			if icons and icons:size() > 0 then
+				texture = loadTexture(obj:getVisual():getBaseTexture(), icons) or loadTexture(obj:getVisual():getTextureChoice(), icons)
+			else
+				texture = obj:getTexture()
+			end
+		end
+	end
+	return texture
+end
+
 function SFQuest_QuestWindow:createChildren()
 	ISCollapsableWindow.createChildren(self)
 	-- local titleBarHeight = self:titleBarHeight()
@@ -112,20 +128,8 @@ function SFQuest_QuestWindow:createChildren()
                     -- print("needItem trovato in obj: " .. needItem:getDisplayName())
                     objectiveData.itemName = needItem:getDisplayName()
                     objectiveData.itemCount = needsTable[2] or "1"
-                    local texture = needItem:getNormalTexture()
-                    if not texture then
-                        local obj = needItem:InstanceItem(nil);
-	                	if obj then
-	                		local icons = needItem:getIconsForTexture();
-	                		if icons and icons:size() > 0 then
-	                			texture = loadTexture(obj:getVisual():getBaseTexture(), icons) or loadTexture(obj:getVisual():getTextureChoice(), icons);
-                                objectiveData.iconTexture = texture
-	                		else
-	                			texture = obj:getTexture();
-                                objectiveData.iconTexture = texture
-	                		end
-	                	end
-	                else 
+                    local texture = getRealTexture(needItem)
+                    if texture then
                         objectiveData.iconTexture = texture
                     end
                 end
@@ -162,20 +166,8 @@ function SFQuest_QuestWindow:createChildren()
         
         if scriptItem then
             needsItemData.itemName = scriptItem:getDisplayName()
-            local texture = scriptItem:getNormalTexture()
-            if not texture then
-                local obj = scriptItem:InstanceItem(nil);
-	        	if obj then
-	        		local icons = scriptItem:getIconsForTexture();
-	        		if icons and icons:size() > 0 then
-	        			texture = loadTexture(obj:getVisual():getBaseTexture(), icons) or loadTexture(obj:getVisual():getTextureChoice(), icons);
-                        needsItemData.iconTexture = texture
-	        		else
-	        			texture = obj:getTexture();
-                        needsItemData.iconTexture = texture
-	        		end
-	        	end
-	        else 
+            local texture = getRealTexture(scriptItem)
+            if texture then
                 needsItemData.iconTexture = texture
             end
         end
@@ -193,22 +185,23 @@ function SFQuest_QuestWindow:createChildren()
         end
     end
 
-    if self.awardsitem then --inserire while rewardTable[count] do in caso ci sia più di un item come reward!! (prendere spunto da WorldEventWindow)
+    if self.awardsitem then
         local count = 1
         local rewardTable = luautils.split(self.awardsitem, ";")
 
-        if rewardTable and #rewardTable > 0 then
-            local itemId = rewardTable[1]
-            local itemCount = rewardTable[2] or "1"
+        while rewardTable[count] do
+            local itemId = rewardTable[count]
+            local itemCount = rewardTable[count+1] or "1"
             local rewardData = {itemId = itemId, itemCount = itemCount}
 
-            local scriptItem = getScriptManager():FindItem(itemId)
-            if not scriptItem then
-                local javaItem = getScriptManager():getItemsByType(rewardTable[1])
-                if javaItem and javaItem:size() > 0 then
-                    scriptItem = javaItem:get(0)
-                end
-            end
+
+            local scriptItem = getScriptManager():FindItem(rewardTable[count])
+			if not scriptItem then
+				local javaItem = getScriptManager():getItemsByType(rewardTable[count])
+				if javaItem and javaItem:size() > 0 then
+					scriptItem = javaItem:get(0)
+				end
+			end
             if scriptItem then
                 rewardData.itemName = scriptItem:getDisplayName()
                 -- fix for panel width dimension issue
@@ -218,57 +211,14 @@ function SFQuest_QuestWindow:createChildren()
                     self:setWidth(self.width+ textWidth-123)
                 end
                 -- fix for panel width dimension issue
-                local texture = scriptItem:getNormalTexture()
-                if not texture then
-                    local obj = scriptItem:InstanceItem(nil);
-	            	if obj then
-	            		local icons = scriptItem:getIconsForTexture();
-	            		if icons and icons:size() > 0 then
-	            			texture = loadTexture(obj:getVisual():getBaseTexture(), icons) or loadTexture(obj:getVisual():getTextureChoice(), icons);
-                            rewardData.iconTexture = texture
-	            		else
-	            			texture = obj:getTexture();
-                            rewardData.iconTexture = texture
-	            		end
-	            	end
-	            else 
+                local texture = getRealTexture(scriptItem)
+                if texture then
                     rewardData.iconTexture = texture
                 end
-            end     
-            table.insert(self.preprocessedRewards, rewardData)
-            count = 3;
-            while rewardTable[count] do
-                local itemCount = rewardTable[count + 1] or "1"
-                local rewardData = {itemId = itemId, itemCount = itemCount}
-                local scriptItem = getScriptManager():FindItem(rewardTable[count]);
-                if scriptItem then
-                    rewardData.itemName = scriptItem:getDisplayName()
-                    -- fix for panel width dimension issue
-                    local textWidth = getTextManager():MeasureStringX(UIFont.Normal, rewardData.itemName)
-                    if textWidth > 123 then
-                        self:setWidth(self.width+ textWidth-123)
-                    end
-                    -- fix for panel width dimension issue
-                    local texture = scriptItem:getNormalTexture()
-                    if not texture then
-                        local obj = scriptItem:InstanceItem(nil);
-	                	if obj then
-	                		local icons = scriptItem:getIconsForTexture();
-	                		if icons and icons:size() > 0 then
-	                			texture = loadTexture(obj:getVisual():getBaseTexture(), icons) or loadTexture(obj:getVisual():getTextureChoice(), icons);
-                                rewardData.iconTexture = texture
-	                		else
-	                			texture = obj:getTexture();
-                                rewardData.iconTexture = texture
-	                		end
-	                	end
-	                else 
-                        rewardData.iconTexture = texture
-                    end
-                end     
-            table.insert(self.preprocessedRewards, rewardData)
-            count = count + 2;
             end
+            table.insert(self.preprocessedRewards, rewardData)
+
+            count = count + 2
         end
     end
 end
@@ -347,6 +297,9 @@ local function drawObjectives(self, preprocessedObjectives, objectives, textX, n
     for i = 1, #preprocessedObjectives do
         -- print(tostring(preprocessedObjectives[i]))
         if not preprocessedObjectives[i].hidden then
+            if not preprocessedObjectives[i].iconTexture then
+                preprocessedObjectives[i].iconTexture = getTexture("media/textures/clickevent.png")
+            end
             if preprocessedObjectives[i].iconTexture then
                 self:drawTextureScaledAspect2(preprocessedObjectives[i].iconTexture, textX-16, needsHeight+ 2, 16, 16, 1, 1, 1, 1)
             end
