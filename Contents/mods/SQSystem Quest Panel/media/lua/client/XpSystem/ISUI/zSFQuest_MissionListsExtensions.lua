@@ -1,4 +1,5 @@
 require "XpSystem/ISUI/SF_MissionLists"
+require "ISUI/ISButton"
 SFQuest_QuestWindow = ISCollapsableWindow:derive("SFQuest_QuestWindow")
 SFQuest_QuestWindow.tooltip = nil;
 
@@ -31,7 +32,8 @@ end
 function SFQuest_QuestWindow:createChildren()
 	ISCollapsableWindow.createChildren(self)
 	-- local titleBarHeight = self:titleBarHeight()
-
+    self.rewX = 0
+    self.objX = 0
 	-- print("controllo loop in createchildren: " .. self.title)
 	self.richText = ISRichTextPanel:new(25, 40, 305, 120);
 	self.richText.autosetheight = false;
@@ -62,23 +64,30 @@ function SFQuest_QuestWindow:createChildren()
 	
 
     -- check if quest has killzombies in actionevent
-    if self.unlocks and luautils.stringStarts(self.unlocks, "actionevent") then
+    if self.unlocks and luautils.stringStarts(self.unlocks, "actionevent") then -- maybe adding a for loop for self.unlocks to check if actionevent exists?
         local unlocksTable = luautils.split(self.unlocks:gsub(":", ";"), ";")
         if unlocksTable[2] == "killzombies" then
+            self.hasZombieCounter = true
             self.goal = tonumber(unlocksTable[3])
         end
         local player = getPlayer()
         for i,v in ipairs(player:getModData().missionProgress.ActionEvent) do
             local commands = luautils.split(v.commands, ";");
-            if luautils.stringStarts(self.guid, commands[2]) then
+            if self.guid == commands[2] then
                 self.tempGoal = tonumber(luautils.split(v.condition, ";")[2])
                 self.currentKills = player:getZombieKills()
-                self.hasZombieCounter = true
                 print("tempGoal: " .. self.tempGoal)
                 print("currentKills: " .. self.currentKills)
                 print("goal: " .. self.goal)
                 break
+            else
+                self.hasZombieCounter = false
             end
+        end
+        if not self.hasZombieCounter then
+            -- se non esiste l'action event si presuppone sia stato già completato? quindi:
+            self.currentKills = self.goal
+            self.hasZombieCounter = true
         end
     end
     
@@ -100,7 +109,9 @@ function SFQuest_QuestWindow:createChildren()
                 text = self.objectives[i].text,
                 hidden = self.objectives[i].hidden
             }
-
+            if not self.objectives[i].needsitem then 
+                self.objX = math.max(self.objX, getTextManager():MeasureStringX(UIFont.Normal, objectiveData.text))
+            end
             if self.objectives[i].needsitem then
                 local needItem
                 local newString = self.objectives[i].needsitem
@@ -109,10 +120,24 @@ function SFQuest_QuestWindow:createChildren()
                 local needsTable = luautils.split(newString, ";")
                 -- print("needsTable item: " .. needsTable[1])
                 -- print("needsTable count: " .. needsTable[2])
-                if luautils.stringStarts(self.objectives[i].needsitem, "Tag") then
+                if luautils.stringStarts(self.objectives[i].needsitem, "Tag#") then
                     local itemsArray = getScriptManager():getItemsTag(needsTable[1])
+                    objectiveData.tag = true
+                    objectiveData.tagItems = {}
+                    local itemNamesSet = {}  -- To track existing item names
                     if itemsArray and itemsArray:size() > 0 then
-                        -- local random = ZombRand(0, itemsArray:size())
+                        local maxTextWidth = 0
+                        for k = 0, itemsArray:size() - 1 do
+                            local itemName = itemsArray:get(k):getDisplayName()
+                            maxTextWidth = math.max(maxTextWidth, getTextManager():MeasureStringX(UIFont.Normal, itemName))
+                            -- print("itemName: " .. itemName .. " maxTextWidth: " .. maxTextWidth)
+                            local itemTexture = getRealTexture(itemsArray:get(k))
+                            if not itemNamesSet[itemName] then
+                                table.insert(objectiveData.tagItems, {itemName = itemName, itemTexture = itemTexture})
+                                itemNamesSet[itemName] = true  -- Mark the itemName as added
+                            end
+                        end
+                        objectiveData.maxTextWidth = maxTextWidth
                         needItem = itemsArray:get(0)
                     end
                 else
@@ -127,14 +152,33 @@ function SFQuest_QuestWindow:createChildren()
                 if needItem then
                     -- print("needItem trovato in obj: " .. needItem:getDisplayName())
                     objectiveData.itemName = needItem:getDisplayName()
+                    self.objX = math.max(self.objX, getTextManager():MeasureStringX(UIFont.Normal, objectiveData.itemName))
                     objectiveData.itemCount = needsTable[2] or "1"
                     local texture = getRealTexture(needItem)
                     if texture then
                         objectiveData.iconTexture = texture
                     end
                 end
+                if objectiveData.tag then
+                    self.tagsButton = ISButton:new(self.width - 20, self.height - 20, 20, 20, "", nil, nil, nil, nil);
+                    self.tagsButton:setEnable(true)
+                    -- self.tagsButton:setTextureRGBA(1, 1, 1, 1)
+                    -- self.tagsButton:setBackgroundRGBA(0, 0, 0, 0.5)
+                    self.tagsButton:noBackground()
+                    -- self.tagsButton:setBorderRGBA(1, 1, 1, 0)
+                    -- self.tagsButton:setBackgroundColorMouseOverRGBA(0,0,0,0.5)
+                    self.tagsButton:initialise();
+                    -- self.tagsButton.ztooltip = ObjectTooltip.new()
+                    -- self.tagsButton.ztooltip:setX(0)
+                    -- self.tagsButton.ztooltip:setY(0)
+                    -- self.tagsButton.ztooltip:setVisible(false)
+                    -- self.tagsButton.ztooltip:setOwner(self)
+                    -- self.tagsButton.ztooltip:setVisible(false)
+                    -- self.tagsButton.ztooltip:setAlwaysOnTop(true)
+                    self:addChild(self.tagsButton);
+                end
+
             end
-            
             table.insert(self.preprocessedObjectives, objectiveData)
         end
     end
@@ -148,11 +192,26 @@ function SFQuest_QuestWindow:createChildren()
         local itemId = needsTable[1]
         local itemCount = needsTable[2]
         local needsItemData = {itemId = itemId, itemCount = itemCount or "1"}
-        if luautils.stringStarts(self.needsitem, "Tag") then
+        if luautils.stringStarts(self.needsitem, "Tag#") then
             local itemsArray = getScriptManager():getItemsTag(needsTable[1])
+            needsItemData.tag = true
+            needsItemData.tagItems = {}
+            local itemNamesSet = {}  -- To track existing item names
             if itemsArray and itemsArray:size() > 0 then
-                -- local random = ZombRand(0, itemsArray:size())
+                local maxTextWidth = 0
+                for i = 0, itemsArray:size() - 1 do
+                    local itemName = itemsArray:get(i):getDisplayName()
+                    maxTextWidth = math.max(maxTextWidth, getTextManager():MeasureStringX(UIFont.Normal, itemName))
+                    -- print("itemName: " .. itemName .. " maxTextWidth: " .. maxTextWidth)
+                    local itemTexture = getRealTexture(itemsArray:get(i))
+                    if not itemNamesSet[itemName] then
+                        table.insert(needsItemData.tagItems, {itemName = itemName, itemTexture = itemTexture})
+                        itemNamesSet[itemName] = true  -- Mark the itemName as added
+                    end
+                end
+                needsItemData.maxTextWidth = maxTextWidth
                 scriptItem = itemsArray:get(0)
+
             end
         else
             scriptItem = getScriptManager():FindItem(needsTable[1])
@@ -166,12 +225,35 @@ function SFQuest_QuestWindow:createChildren()
         
         if scriptItem then
             needsItemData.itemName = scriptItem:getDisplayName()
+            self.objX = getTextManager():MeasureStringX(UIFont.Normal, needsItemData.itemName)
+                -- print(textWidth)
+                -- if self.objX > 123 then
+                --     self:setWidth(self.width + self.objX-123)
+                -- end
             local texture = getRealTexture(scriptItem)
             if texture then
                 needsItemData.iconTexture = texture
             end
         end
         table.insert(self.preprocessedNeedsItems, needsItemData)
+        if needsItemData.tag then
+            self.tagsButton = ISButton:new(self.width - 20, self.height - 20, 20, 20, "", nil, nil, nil, nil);
+            self.tagsButton:setEnable(true)
+            -- self.tagsButton:setTextureRGBA(1, 1, 1, 1)
+            -- self.tagsButton:setBackgroundRGBA(0, 0, 0, 0.5)
+            self.tagsButton:noBackground()
+            -- self.tagsButton:setBorderRGBA(1, 1, 1, 0)
+            -- self.tagsButton:setBackgroundColorMouseOverRGBA(0,0,0,0.5)
+            self.tagsButton:initialise();
+            -- self.tagsButton.ztooltip = ObjectTooltip.new()
+            -- self.tagsButton.ztooltip:setX(0)
+            -- self.tagsButton.ztooltip:setY(0)
+            -- self.tagsButton.ztooltip:setVisible(false)
+            -- self.tagsButton.ztooltip:setOwner(self)
+			-- self.tagsButton.ztooltip:setVisible(false)
+			-- self.tagsButton.ztooltip:setAlwaysOnTop(true)
+            self:addChild(self.tagsButton);
+        end
     end
 
     self.preprocessedRewards = {}
@@ -205,11 +287,12 @@ function SFQuest_QuestWindow:createChildren()
             if scriptItem then
                 rewardData.itemName = scriptItem:getDisplayName()
                 -- fix for panel width dimension issue
-                local textWidth = getTextManager():MeasureStringX(UIFont.Normal, rewardData.itemName)
+                self.rewX = math.max(self.rewX, getTextManager():MeasureStringX(UIFont.Normal, rewardData.itemName))+30 --+30 offset icona
+                -- print("itemName: " .. rewardData.itemName .. " maxTextWidth: " .. self.rewX)
                 -- print(textWidth)
-                if textWidth > 123 then
-                    self:setWidth(self.width+ textWidth-123)
-                end
+                -- if self.rewX > 60 then
+                --     self:setWidth(self.width+self.rewX-30)
+                -- end
                 -- fix for panel width dimension issue
                 local texture = getRealTexture(scriptItem)
                 if texture then
@@ -221,6 +304,24 @@ function SFQuest_QuestWindow:createChildren()
             count = count + 2
         end
     end
+    if self.objX < 120 then
+        self.objX = 120
+    end
+    if self.rewX < 100 then
+        self.rewX = 100
+    end
+
+    local rewX = self.objX +60 +50 +20  --+50 offset icona --60 offset for status
+
+  
+    if rewX+self.rewX > self.width then
+        self:setWidth(rewX+self.rewX)
+    end
+    if rewX+self.rewX < self.width then
+        self:setWidth(rewX+self.rewX)
+    end
+    self.rewX = rewX
+
 end
 
 
@@ -238,30 +339,30 @@ end
 
 
 -- Funzioni helper
-local function drawReputationReward(self, reward, textX, rewardHeight)
-    self:drawTextureScaledAspect(getTexture("media/textures/Item_PlusRep.png"), textX - 20, rewardHeight, 20, 20, 1, 1, 1, 1)
-    self:drawText(reward.text, textX, rewardHeight + 2, 1, 1, 1, 1, self.font)
+local function drawReputationReward(self, reward, rewX, rewardHeight)
+    self:drawTextureScaledAspect(getTexture("media/textures/Item_PlusRep.png"), rewX-16, rewardHeight, 20, 20, 1, 1, 1, 1)
+    self:drawText(reward.text, rewX+5, rewardHeight + 2, 1, 1, 1, 1, self.font)
     return rewardHeight - 20
 end
 
-local function drawItemRewards(self, reward, textX, rewardHeight)
+local function drawItemRewards(self, reward, rewX, rewardHeight)
     if reward.iconTexture then
-        self:drawTextureScaledAspect(reward.iconTexture, textX - 20, rewardHeight, 20, 20, 1, 1, 1, 1)
+        self:drawTextureScaledAspect(reward.iconTexture, rewX-16, rewardHeight, 20, 20, 1, 1, 1, 1)
     end
     local itemName = reward.itemName or reward.itemId
     
-    self:drawText(itemName .. "  X " .. reward.itemCount, textX, rewardHeight + 2, 1, 1, 1, 1, UIFont.Normal)
+    self:drawText(itemName .. "  x " .. reward.itemCount, rewX+5, rewardHeight + 2, 1, 1, 1, 1, UIFont.Normal)
     return rewardHeight - 20
 end
 
 
-local function drawRewards(self, rewards, textX, rewardHeight)
+local function drawRewards(self, rewards, rewX, rewardHeight)
     local hasRewards = false
     for _, reward in ipairs(rewards) do
         if reward.type == "reputation" then
-            rewardHeight = drawReputationReward(self, reward, textX, rewardHeight)
+            rewardHeight = drawReputationReward(self, reward, rewX, rewardHeight)
         else
-            rewardHeight = drawItemRewards(self, reward, textX, rewardHeight)
+            rewardHeight = drawItemRewards(self, reward, rewX, rewardHeight)
         end
         hasRewards = true
     end
@@ -269,74 +370,170 @@ local function drawRewards(self, rewards, textX, rewardHeight)
 end
 
 
-local function drawNeededItems(self, needsItems, status, textX, needsHeight)
+local function drawNeededItems(self, needsItems, status, objX, needsHeight)
     for i = 1, #needsItems do
-        local itemId = needsItems[i].itemId
-        local itemCount = needsItems[i].itemCount
-        local itemName = needsItems[i].itemName or itemId
-        local iconTexture = needsItems[i].iconTexture
+        local itemData = needsItems[i]
+        local itemName = itemData.itemName or itemData.itemId
+        local itemCount = itemData.itemCount
+        local iconTexture = itemData.iconTexture
+        local isTag = itemData.tag
+        local r, g, b = 1, 1, 1
+
         if status then
-           local objstatus = getText("IGUI_XP_TaskStatus_" .. status)
-           itemName = objstatus .. " " .. itemName
+            local objstatus = getText("IGUI_XP_TaskStatus_" .. status)
+            itemName = objstatus .. " " .. itemName
+            if status == "Completed" then
+                r, g, b = 0, 1, 0.5
+                
+            elseif status == "Obtained" then
+                r, g, b = 1, 1, 0
+            end
         end
 
-        if iconTexture then
-            self:drawTextureScaledAspect2(iconTexture, textX - 20, needsHeight, 16, 16, 1, 1, 1, 1)
+        if isTag then
+            -- Display with expand/collapse functionality
+            local displayText = string.format("%s x %s", self.title, itemCount)
+            self:drawText(displayText, objX+5, needsHeight + 2, r, g, b, 1, UIFont.Normal)
+            local titleWidth = getTextManager():MeasureStringX(UIFont.Normal, displayText)
+
+            local btnWidth = getTextManager():MeasureStringX(UIFont.Normal, "LISTA")
+            self.tagsButton:setTitle("LISTA")
+            self.tagsButton.textColor = {r=r, g=g, b=b, a=1.0};
+            self:drawTextureScaledAspect2(iconTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1) -- mettere icona nuova multi items request
+            self.tagsButton:setX(titleWidth+16+objX)
+            self.tagsButton:setY(needsHeight)
+            self.tagsButton:setWidth(btnWidth + 10)
+            
+
+            -- tooltip
+            -- self.tagsButton.ztooltip:setDesiredPosition(getMouseX(), self:getAbsoluteY() + self:getHeight() + 8)
+            if self.tagsButton:isMouseOver() then
+                -- self.tagsButton.ztooltip:setVisible(true)
+                -- local mx = getMouseX() + 24;
+                -- local my = getMouseY() + 24;
+                -- self.tagsButton.ztooltip:setX(mx+11);
+                -- self.tagsButton.ztooltip:setY(my);
+                -- self.tagsButton.ztooltip:setWidth(50)
+                self.tagsButton.textColor = {r=0, g=1.0, b=0, a=1.0};
+                local tooltipHeight = self.tagsButton.height+5
+                local tooltipTitle = "Lista Items Accettati:" -- TODO: create translation
+                local rectWidthMax = math.max(itemData.maxTextWidth, getTextManager():MeasureStringX(UIFont.Large, tooltipTitle))
+                self.tagsButton:drawRect(0, self.tagsButton.height+5, rectWidthMax+30, 20 * #itemData.tagItems+tooltipHeight, 0.5, 0, 0, 0);
+                self.tagsButton:drawRectBorder(0, tooltipHeight, rectWidthMax+30, 20 * #itemData.tagItems+tooltipHeight, 0.5, 1, 1, 1);
+                self.tagsButton:drawText(tooltipTitle, 25, tooltipHeight+2, 1,1,1,1,UIFont.Large)
+                tooltipHeight = tooltipHeight + 20
+                for _, validItem in ipairs(itemData.tagItems) do
+                    -- self.tagsButton.ztooltip:DrawTextureScaledAspect(validItem.itemTexture, 5, tooltipHeight, 16, 16, 1, 1, 1, 1)
+                    -- self.tagsButton.ztooltip:DrawText(UIFont.Normal,validItem.itemName, 25, tooltipHeight, 1,1,1,1);
+                    self.tagsButton:drawTextureScaledAspect(validItem.itemTexture, 5, tooltipHeight+4, 16, 16, 1, 1, 1, 1)
+                    self.tagsButton:drawText(validItem.itemName, 25, tooltipHeight+4, 1,1,1,1,UIFont.Normal)
+                    tooltipHeight = tooltipHeight + 20
+                end 
+            else
+                self.tagsButton.textColor = {r=r, g=g, b=b, a=1.0};
+                -- self.tagsButton.ztooltip:setVisible(false)
+            end
+        else
+            -- if iconTexture
+            if iconTexture then
+                self:drawTextureScaledAspect2(iconTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1)
+            end
+            -- Display single items normally
+            self:drawText(itemName .. " x" .. itemCount, objX+5, needsHeight + 2, r, g, b, 1, UIFont.Normal)
         end
-        self:drawText(itemName .. "  X " .. itemCount, textX + 5, needsHeight + 2, 1, 1, 1, 1, UIFont.Normal) -- TO DO inserire anche qui status quest?
+
         needsHeight = needsHeight - 20
     end
 
     return needsHeight
 end
 
-
-
-
-local function drawObjectives(self, preprocessedObjectives, objectives, textX, needsHeight)
+local function drawObjectives(self, preprocessedObjectives, objectives, objX, needsHeight)
     for i = 1, #preprocessedObjectives do
-        -- print(tostring(preprocessedObjectives[i]))
-        if not preprocessedObjectives[i].hidden then
-            if not preprocessedObjectives[i].iconTexture then
-                preprocessedObjectives[i].iconTexture = getTexture("media/textures/clickevent.png")
+        local objective = preprocessedObjectives[i]
+        local isTag = objective.tag
+        local objName = getText(objective.text)
+        local objstatus
+
+        if not objective.hidden then
+            if not objective.iconTexture then
+                objective.iconTexture = getTexture("media/textures/clickevent.png")
             end
-            if preprocessedObjectives[i].iconTexture then
-                self:drawTextureScaledAspect2(preprocessedObjectives[i].iconTexture, textX-16, needsHeight+ 2, 16, 16, 1, 1, 1, 1)
-            end
-            local objtext = getText(preprocessedObjectives[i].text)
-            local objstatus
-            if objectives[i] and objectives[i].needsitem then
-                -- luautils.split(objectives[i].needsitem, ";")[2]
-                if not preprocessedObjectives[i].itemName or not preprocessedObjectives[i].itemCount then
-                    local needsitemTable = luautils.split(objectives[i].needsitem, ";")
-                    objtext = (needsitemTable[1] .. " X " .. needsitemTable[2] )
-                else
-                objtext = (preprocessedObjectives[i].itemName .. " X " .. preprocessedObjectives[i].itemCount )
-                end
-            end
-            local r, g, b = 0.5, 0.5, 0.5
-            if not self.greyed then
-                r, g, b = 1.0, 1.0, 1.0
-            end
+
+            
+
+            local r, g, b = 1, 1, 1
+
+            -- Handle status coloring and text
             if objectives[i].status then
                 objstatus = getText("IGUI_XP_TaskStatus_" .. objectives[i].status)
-                objtext = objstatus .. " " .. objtext
-                if objectives[i].status == "Failed" then
-                    r, g, b = 1.0, 0.25, 0.25
-                elseif objectives[i].status == "Delivered" then
-                    r, g, b = 0.5, 0.5, 0.5
+                objName = objstatus .. " " .. (objName or "...")
+                if objectives[i].status == "Completed" then
+                    r, g, b = 0, 1, 0.5
+                    
+                elseif objectives[i].status == "Obtained" then
+                    r, g, b = 1, 1, 0
                 end
             end
-            self:drawText(objtext, textX + 5, needsHeight+ 2, 1, r, g, b, UIFont.Normal)
+
+            if objectives[i] and objectives[i].needsitem then
+                local itemCount = objective.itemCount
+                if not objective.itemName or not objective.itemCount then
+                    local needsitemTable = luautils.split(objectives[i].needsitem, ";")
+                    objName = (needsitemTable[1] .. " X " .. needsitemTable[2] )
+                else
+                    objName = (objective.itemName .. " X " .. objective.itemCount )
+                end
+                if objectives[i].status then
+                    local objstatus = getText("IGUI_XP_TaskStatus_" .. objectives[i].status)
+                    objName = objstatus .. " " .. (objName or "...")
+                end
+
+                if isTag then
+                    local displayText = string.format("%s x %s", getText(objective.text), itemCount)
+                    local titleWidth = getTextManager():MeasureStringX(UIFont.Normal, displayText)
+
+                    local btnWidth = getTextManager():MeasureStringX(UIFont.Normal, "LISTA")
+                    -- Ensure self.tagsButton is initialized elsewhere in your code
+                    self.tagsButton:setTitle("LISTA")
+                    self.tagsButton.textColor = { r = r, g = g, b = b, a = 1.0 }
+                    self:drawTextureScaledAspect2(objective.iconTexture, objX - 16, needsHeight + 2, 16, 16, 1, 1, 1, 1)
+                    self.tagsButton:setX(titleWidth + 16 + 20 + objX)
+                    self.tagsButton:setY(needsHeight)
+                    self.tagsButton:setWidth(btnWidth + 10)
+
+                    -- Tooltip display when hovering over the button
+                    if self.tagsButton:isMouseOver() then
+                        self.tagsButton.textColor = { r = 0, g = 1.0, b = 0, a = 1.0 }
+                        local tooltipHeight = self.tagsButton.height + 5
+                        local tooltipTitle = "Lista Items Accettati"
+                        local rectWidthMax = math.max(objective.maxTextWidth, getTextManager():MeasureStringX(UIFont.Large, tooltipTitle))
+                        self.tagsButton:drawRect(0, tooltipHeight, rectWidthMax + 40, 20 * #objective.tagItems + tooltipHeight, 0.5, 0, 0, 0)
+                        self.tagsButton:drawRectBorder(0, tooltipHeight, rectWidthMax + 40, 20 * #objective.tagItems + tooltipHeight, 0.5, 1, 1, 1)
+                        self.tagsButton:drawText(tooltipTitle, 25, tooltipHeight + 2, 1, 1, 1, 1, UIFont.Large)
+                        tooltipHeight = tooltipHeight + 20
+
+                        for _, validItem in ipairs(objective.tagItems) do
+                            self.tagsButton:drawTextureScaledAspect(validItem.itemTexture, 5, tooltipHeight + 4, 16, 16, 1, 1, 1, 1)
+                            self.tagsButton:drawText(validItem.itemName, 25, tooltipHeight + 4, 1, 1, 1, 1, UIFont.Normal)
+                            tooltipHeight = tooltipHeight + 20
+                        end
+                    else
+                        self.tagsButton.textColor = { r = r, g = g, b = b, a = 1.0 }
+                    end
+                end
+            end
+            if objective.iconTexture then
+                self:drawTextureScaledAspect2(objective.iconTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1)
+            end
+            -- local objText = objName .. " x" .. itemCount
+            self:drawText(objName, objX + 5, needsHeight + 2, r, g, b, 1, UIFont.Normal)
+
             needsHeight = needsHeight - 20
         end
     end
     return needsHeight
 end
-
-
-
-
 
 -- Funzione render
 function SFQuest_QuestWindow:render()
@@ -346,17 +543,19 @@ function SFQuest_QuestWindow:render()
 	-- if self.isCollapsed then
 	-- 	height = th;
     -- end
-    local textX = 280
-    local rewardHeight = self.height - self.fontHeight - 10
     local needsHeight = self.height - self.fontHeight - 10
-    local fixPosX = 20
-    local fixPosXImg = 20
+    local rewardHeight = self.height - self.fontHeight - 10
     local hasRewards = false
     local hasNeeds = false
     local hasObjs = false
-    -- if self.status then
-    --     self.title = getText("IGUI_XP_TaskStatus_" .. self.status) .. " " .. self.title
-    -- end
+    local objX = 20
+    
+
+    if self.task.status then
+        self:setTitle(getText("IGUI_XP_TaskStatus_" .. self.task.status) .. " " .. self.originalTitle)
+    else 
+        self:setTitle(self.originalTitle)
+    end
     if self.isCollapsed then
         if self.hasZombieCounter then
             if #self.title > 30 then
@@ -364,26 +563,27 @@ function SFQuest_QuestWindow:render()
                 -- self:setTitle(string.sub(self.title, 1, 20) .. "...")
             end
             local player = getPlayer()
-            if player then
-                local newCurrentKills = player:getZombieKills()
-                if newCurrentKills > self.currentKills then
-                    self.currentKills = self.currentKills + (newCurrentKills - self.currentKills)
-                    if self.currentKills - (self.tempGoal - self.goal) >= self.goal then
-                        self.hasZombieCounter = false
+            if self.hasZombieCounter then
+                local player = getPlayer()
+                if player then
+                    local newCurrentKills = player:getZombieKills()
+                    if newCurrentKills > self.tempGoal then
+                        self.currentKills = self.goal
                     else
-                        self.hasZombieCounter = true
+                        self.currentKills = newCurrentKills
+                        if self.currentKills - (self.tempGoal - self.goal) >= self.goal then
+                            self.currentKills = self.goal
+                        end
                     end
                 end
             end
             self:drawTextureScaledAspect2(self.zombieTexture, 280, 2, 16, 16, 1, 1, 1, 1)
-            self:drawText("Zombie: " .. tostring(self.currentKills - (self.tempGoal - self.goal)) .. "/" .. tostring(self.goal), 300, 3, 1, 1, 1, 1, self.font)
+            self:drawText("Zombie: " .. tostring(self.currentKills) .. "/" .. tostring(self.goal), 300, 3, 1, 1, 1, 1, self.font)
             -- self:drawText(getText("IGUI_Objectives"), 30, 25, 1, 1, 1, 1, UIFont.Medium)
         end
         return
-    else 
-        self:setTitle(self.originalTitle)
     end
-    
+
 
     self.richText:setX(10 + self.picTexture:getWidth())
     self.richText:setY(40)
@@ -398,51 +598,48 @@ function SFQuest_QuestWindow:render()
 
 
     if self.preprocessedRewards and #self.preprocessedRewards > 0 then
-        hasRewards, rewardHeight = drawRewards(self, self.preprocessedRewards, textX-10, rewardHeight)
+        hasRewards, rewardHeight = drawRewards(self, self.preprocessedRewards, self.rewX, rewardHeight)
         if hasRewards then
-            self:drawText(getText("IGUI_Rewards"), textX-10 , rewardHeight -5, 1, 1, 1, 1, UIFont.Medium)
+            self:drawText(getText("IGUI_Rewards"), self.rewX , rewardHeight -5, 1, 1, 1, 1, UIFont.Medium)
         end
     end
-    -- Disegna le ricompense di `rewardTask`
-    -- if self.awardstask and not (self.awardsrep or self.awardsitem) then
-    --     local rewardTask = SF_MissionPanel:getQuest(self.awardstask)
-    --     if rewardTask.awardsrep or rewardTask.awardsitem then
-    --         hasRewards, rewardHeight = drawRewards(self, rewardTask.awardsrep, rewardTask.awardsitem, textX-10, rewardHeight)
-    --     end
-    -- end
-
 
     -- Disegna gli oggetti necessari
     if self.preprocessedNeedsItems and #self.preprocessedNeedsItems > 0 then
         if self.awardsitem or self.awardsrep then
             needsHeight = rewardHeight + 20
         end
-        needsHeight = drawNeededItems(self, self.preprocessedNeedsItems, self.status, fixPosX+5, needsHeight)
+        needsHeight = drawNeededItems(self, self.preprocessedNeedsItems, self.task.status, objX, needsHeight)
         hasNeeds = true
     end
     if hasNeeds then
-        self:drawText(getText("IGUI_Objectives"), fixPosX + 10, needsHeight -5, 1, 1, 1, 1, UIFont.Medium)
+        self:drawText(getText("IGUI_Objectives"), objX, needsHeight -5, 1, 1, 1, 1, UIFont.Medium)
     end
 
-
+    local r, g, b = 1,1,1
+    local zombieStatus = ""
     if self.hasZombieCounter then
         local player = getPlayer()
         if player then
             local newCurrentKills = player:getZombieKills()
-            if newCurrentKills > self.currentKills then
-                self.currentKills = self.currentKills + (newCurrentKills - self.currentKills)
+            if newCurrentKills > self.tempGoal then
+                self.currentKills = self.goal
+                r,g,b = 0,1,0.5
+                zombieStatus = getText("IGUI_XP_TaskStatus_Completed")
+            else
+                self.currentKills = newCurrentKills
                 if self.currentKills - (self.tempGoal - self.goal) >= self.goal then
-                    self.hasZombieCounter = false
-                else
-                    self.hasZombieCounter = true
+                    self.currentKills = self.goal
+                    r,g,b = 0,1,0.5
                 end
             end
         end
 
         if not self.objectives then
-            self:drawText(getText("IGUI_Objectives"),  fixPosX+10, needsHeight -20, 1, 1, 1, 1, UIFont.Medium)
-            self:drawTextureScaledAspect2(self.zombieTexture, fixPosX - 10, needsHeight+2, 16, 16, 1, 1, 1, 1)
-            self:drawText("Zombie: " .. tostring(self.currentKills - (self.tempGoal - self.goal)) .. "/" .. tostring(self.goal),  fixPosX+10, needsHeight + 4, 1, 1, 1, 1, self.font)
+            self:drawText(getText("IGUI_Objectives"),  objX, needsHeight -20, 1, 1, 1, 1, UIFont.Medium)
+            self:drawTextureScaledAspect2(self.zombieTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1)
+        
+            self:drawText(zombieStatus.."Zombie: " .. tostring(self.currentKills) .. "/" .. tostring(self.goal),  objX+5, needsHeight + 4, r, g, b, 1, self.font)
         end
     end
 
@@ -453,14 +650,14 @@ function SFQuest_QuestWindow:render()
             needsHeight = rewardHeight + 20
         end
         
-        needsHeight = drawObjectives(self, self.preprocessedObjectives, self.objectives, fixPosX+5, needsHeight)
+        needsHeight = drawObjectives(self, self.preprocessedObjectives, self.objectives, objX, needsHeight)
         if self.hasZombieCounter then
-            self:drawTextureScaledAspect2(self.zombieTexture, fixPosX - 10, needsHeight+2, 16, 16, 1, 1, 1, 1)
-            self:drawText("Zombie: " .. tostring(self.currentKills - (self.tempGoal - self.goal)) .. "/" .. tostring(self.goal), fixPosX+10, needsHeight + 4, 1, 1, 1, 1, self.font)
+            self:drawTextureScaledAspect2(self.zombieTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1)
+            self:drawText(zombieStatus.."Zombie: " .. tostring(self.currentKills) .. "/" .. tostring(self.goal), objX+5, needsHeight + 4, r, g, b, 1, self.font)
             needsHeight = needsHeight - 20
         end
         if hasObjs then
-            self:drawText(getText("IGUI_Objectives"), fixPosX + 10, needsHeight -5, 1, 1, 1, 1, UIFont.Medium)
+            self:drawText(getText("IGUI_Objectives"), objX , needsHeight -5, 1, 1, 1, 1, UIFont.Medium)
         end
     end
 
@@ -477,6 +674,7 @@ function SFQuest_QuestWindow:close()
 end
 
 function SFQuest_QuestWindow:new(x, y, item)
+
 	-- print("controllo loop in new: " .. item.text)
     -- this will be much more easy if we can get from the task the npc's identity, so we can use SF_MissionPanel.instance:getWorldInfo(identity);
 	local width = 420
@@ -512,13 +710,13 @@ function SFQuest_QuestWindow:new(x, y, item)
 	o.guid = item.guid
 	o.title = getText(item.text) or "????";
     o.status = item.status or nil
-	if item.status then
-		o.title = getText("IGUI_XP_TaskStatus_" .. item.status) .. getText(item.text);
-	end
+	-- if item.status then
+	-- 	o.title = getText("IGUI_XP_TaskStatus_" .. item.status) .. getText(item.text);
+	-- end
 	o.titleFont = UIFont.Medium
 	o.titleFontHgt = getTextManager():getFontHeight(o.titleFont)
 	o.npcname = getText(item.title)
-	
+    o.task = item
 	SFQuest_QuestWindow.instance = o;
 	return o
 end
@@ -560,6 +758,5 @@ function SFQuest_MissionLists:onMouseDown(x, y)
 				parent.window.resizable = true
 				getSoundManager():playUISound("UISelectListItem");
             end
-			SF_MissionPanel.instance:triggerUpdate();	
-
+			SF_MissionPanel.instance:triggerUpdate()
 end
