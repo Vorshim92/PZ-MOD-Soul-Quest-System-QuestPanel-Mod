@@ -35,7 +35,7 @@ function SFQuest_QuestWindow:createChildren()
     self.rewX = 0
     self.objX = 0
 	-- print("controllo loop in createchildren: " .. self.title)
-	self.richText = ISRichTextPanel:new(25, 40, 305, 120);
+	self.richText = ISRichTextPanel:new(25, 300, self.width-110, 100);
 	self.richText.autosetheight = false;
 	self.richText.clip = true
 	self.richText:initialise();
@@ -47,6 +47,9 @@ function SFQuest_QuestWindow:createChildren()
 	self.richText:setVisible(false);
 	self.richText.backgroundColor  = {r=0.5, g=0.5, b=0.5, a=0.1};
 	self.richText.text = getText(self.dialogueinfo[1]) or "...";
+    self.richText:setMargins(10,10,20,10)
+    self.richText:paginate()
+
 	self.richText:addScrollBars()
     -- self.richText.vscroll.x + 5
 	self:addChild(self.richText);
