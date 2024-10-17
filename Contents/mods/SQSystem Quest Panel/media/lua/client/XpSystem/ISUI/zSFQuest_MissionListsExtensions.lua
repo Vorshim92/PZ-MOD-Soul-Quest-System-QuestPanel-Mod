@@ -35,7 +35,7 @@ function SFQuest_QuestWindow:createChildren()
     self.rewX = 0
     self.objX = 0
 	-- print("controllo loop in createchildren: " .. self.title)
-	self.richText = ISRichTextPanel:new(25, 300, self.width-110, 100);
+	self.richText = ISRichTextPanel:new(25, 40, self.width-110, 100);
 	self.richText.autosetheight = false;
 	self.richText.clip = true
 	self.richText:initialise();
@@ -49,7 +49,7 @@ function SFQuest_QuestWindow:createChildren()
 	self.richText.text = getText(self.dialogueinfo[1]) or "...";
     self.richText:setMargins(10,10,20,10)
     self.richText:paginate()
-
+    -- local lineHeight = getTextManager():getFontFromEnum(self.font):getLineHeight();
 	self.richText:addScrollBars()
     -- self.richText.vscroll.x + 5
 	self:addChild(self.richText);
@@ -64,6 +64,9 @@ function SFQuest_QuestWindow:createChildren()
 	-- self.Image:setEnable(true);
 	-- self:addChild(self.Image) 
     end
+    self.richText:setX(10 + self.picTexture:getWidth())
+    -- self.richText:setY(40)
+	
 	
 
     -- check if quest has killzombies in actionevent
@@ -588,10 +591,8 @@ function SFQuest_QuestWindow:render()
     end
 
 
-    self.richText:setX(10 + self.picTexture:getWidth())
-    self.richText:setY(40)
     self.richText:setVisible(true)
-    self.richText:paginate()
+
     self:drawText(self.npcname, 12, 25, 1, 1, 1, 1, UIFont.Medium)
 
     if self.picTexture then
