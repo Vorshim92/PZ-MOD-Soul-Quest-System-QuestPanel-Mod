@@ -573,10 +573,15 @@ function SFQuest_QuestWindow:render()
                 local player = getPlayer()
                 if player then
                     local newCurrentKills = player:getZombieKills()
-                    if newCurrentKills >= self.tempGoal then
+                    local killsRemaining = self.tempGoal - newCurrentKills
+
+                    if killsRemaining <= 0 then
+                        -- Quest completed
                         self.currentKills = self.goal
+                        killsRemaining = 0  -- Prevent negative kills remaining
                     else
-                        self.currentKills = newCurrentKills
+                    -- Quest not yet completed
+                    self.currentKills = self.goal - killsRemaining  -- Adjust current kills relative to quest start
                     end
                 end
             end
