@@ -623,20 +623,24 @@ function SFQuest_QuestWindow:render()
         local player = getPlayer()
         if player then
             local newCurrentKills = player:getZombieKills()
-            if newCurrentKills >= self.tempGoal then
+            local killsRemaining = self.tempGoal - newCurrentKills
+
+            if killsRemaining <= 0 then
+                -- Quest completed
                 self.currentKills = self.goal
                 r, g, b = 0, 1, 0.5
                 zombieStatus = getText("IGUI_XP_TaskStatus_Completed")
+                killsRemaining = 0  -- Prevent negative kills remaining
             else
-                self.currentKills = newCurrentKills
+            -- Quest not yet completed
+            self.currentKills = self.goal - killsRemaining  -- Adjust current kills relative to quest start
             end
         end
-
         if not self.objectives then
             self:drawText(getText("IGUI_Objectives"),  objX, needsHeight -20, 1, 1, 1, 1, UIFont.Medium)
             self:drawTextureScaledAspect2(self.zombieTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1)
         
-            self:drawText(zombieStatus.."Zombie: " .. tostring(self.currentKills) .. "/" .. tostring(self.goal),  objX+5, needsHeight + 4, r, g, b, 1, self.font)
+            self:drawText(zombieStatus.."Zombie: " .. tostring(self.currentKills) .. "/" .. tostring(self.goal),  objX+5, needsHeight   + 4, r, g, b, 1, self.font)
         end
     end
 
