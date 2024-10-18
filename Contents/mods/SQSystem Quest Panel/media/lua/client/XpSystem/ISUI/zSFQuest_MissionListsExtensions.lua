@@ -577,7 +577,7 @@ function SFQuest_QuestWindow:render()
                         self.currentKills = self.goal
                     else
                         self.currentKills = newCurrentKills
-                        if self.currentKills - (self.tempGoal - self.goal) >= self.goal then
+                        if self.currentKills >= self.tempGoal then
                             self.currentKills = self.goal
                         end
                     end
@@ -626,13 +626,13 @@ function SFQuest_QuestWindow:render()
         local player = getPlayer()
         if player then
             local newCurrentKills = player:getZombieKills()
-            if newCurrentKills > self.tempGoal then
+            if newCurrentKills > self.tempGoal then -- se non esiste l'action event tempGoal = 0 quindi ci va bene comunque. vorrà dire che o è buggata o è stata completata l'action event
                 self.currentKills = self.goal
                 r,g,b = 0,1,0.5
                 zombieStatus = getText("IGUI_XP_TaskStatus_Completed")
             else
                 self.currentKills = newCurrentKills
-                if self.currentKills - (self.tempGoal - self.goal) >= self.goal then
+                if self.currentKills >= self.tempGoal then
                     self.currentKills = self.goal
                     r,g,b = 0,1,0.5
                 end
