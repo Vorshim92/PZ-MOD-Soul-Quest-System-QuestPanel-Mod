@@ -2,6 +2,7 @@ require "XpSystem/ISUI/SF_MissionLists"
 require "ISUI/ISButton"
 SFQuest_QuestWindow = ISCollapsableWindow:derive("SFQuest_QuestWindow")
 SFQuest_QuestWindow.tooltip = nil;
+local questyno2 = SF_MissionPanel.Events or false
 
 function SFQuest_QuestWindow:initialise()
 	ISCollapsableWindow.initialise(self);
@@ -70,20 +71,33 @@ function SFQuest_QuestWindow:createChildren()
 	
 
     -- check if quest has killzombies in actionevent
-    if self.unlocks and luautils.stringStarts(self.unlocks, "actionevent") then -- maybe adding a for loop for self.unlocks to check if actionevent exists?
+    if self.unlocks and luautils.stringStarts(self.unlocks, "actionevent") then -- ex: unlocks = actionevent;killzombies:50; 
         local unlocksTable = luautils.split(self.unlocks:gsub(":", ";"), ";")
         if unlocksTable[2] == "killzombies" then
             self.hasZombieCounter = true
             self.goal = tonumber(unlocksTable[3])
-            for i,v in ipairs(getPlayer():getModData().missionProgress.ActionEvent) do
-                local commands = luautils.split(v.commands, ";");
-                if luautils.stringStarts(self.guid, commands[2]) then
-                    self.tempGoal = tonumber(luautils.split(v.condition, ";")[2])
-                    self.currentKills = getPlayer():getZombieKills()
-                    print("tempGoal: " .. self.tempGoal)
-                    print("currentKills: " .. self.currentKills)
-                    print("goal: " .. self.goal)
-                    break
+            if questyno2 then
+                for i,v in ipairs(getPlayer():getModData().missionProgress.ActionEvent) do
+                    local commands = luautils.split(v.commands, ";");
+                    if luautils.stringStarts(self.guid, commands[2]) then
+                        self.index = i
+                        self.kills = v.kills
+                        break
+                    else
+                        self.kills = self.goal
+                    end
+                end
+            else
+                for i,v in ipairs(getPlayer():getModData().missionProgress.ActionEvent) do
+                    local commands = luautils.split(v.commands, ";");
+                    if luautils.stringStarts(self.guid, commands[2]) then
+                        self.tempGoal = tonumber(luautils.split(v.condition, ";")[2])
+                        self.currentKills = getPlayer():getZombieKills()
+                        -- print("tempGoal: " .. self.tempGoal)
+                        -- print("currentKills: " .. self.currentKills)
+                        -- print("goal: " .. self.goal)
+                        break
+                    end
                 end
             end
         end
@@ -561,21 +575,28 @@ function SFQuest_QuestWindow:render()
             -- end
             self:drawText(self.title, 25, 1, 1, 1, 1, 1, self.titleBarFont)
             self:setTitle("")
-            local newCurrentKills = getPlayer():getZombieKills()
-            local killsRemaining = self.tempGoal - newCurrentKills
-            if killsRemaining <= 0 then
-                -- Quest completed
-                self.currentKills = self.goal
-                killsRemaining = 0  -- Prevent negative kills remaining
+            if not questyno2 then
+                local newCurrentKills = getPlayer():getZombieKills()
+                local killsRemaining = self.tempGoal - newCurrentKills
+                if killsRemaining <= 0 then
+                    -- Quest completed
+                    self.currentKills = self.goal
+                    killsRemaining = 0  -- Prevent negative kills remaining
+                else
+                    -- Quest not yet completed
+                    self.currentKills = self.goal - killsRemaining  -- Adjust current kills relative to quest start
+                end
             else
-                -- Quest not yet completed
-                self.currentKills = self.goal - killsRemaining  -- Adjust current kills relative to quest start
+                if self.kills >= self.goal then
+                    self.kills = self.goal
+                else
+                    self.kills = getPlayer():getModData().missionProgress.ActionEvent[self.index].kills
+                end
             end
             -- check x position based on measurestringx of title maybe? that is always set on x = self.width/2 ?
-            local titlewidth = getTextManager():MeasureStringX(UIFont.Medium, "Zombie: " .. tostring(self.currentKills) .. "/" .. tostring(self.goal))
+            local titlewidth = getTextManager():MeasureStringX(UIFont.Medium, "Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal))
             self:drawTextureScaledAspect2(self.zombieTexture, self:getWidth()-titlewidth-20, 2, 16, 16, 1, 1, 1, 1)
-            self:drawText("Zombie: " .. tostring(self.currentKills) .. "/" .. tostring(self.goal), self:getWidth()-titlewidth, 3, 1, 1, 1, 1, self.font)
-
+            self:drawText("Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal), self:getWidth()-titlewidth, 3, 1, 1, 1, 1, self.font)
         end
         return
     end
@@ -613,23 +634,33 @@ function SFQuest_QuestWindow:render()
     local r, g, b = 1,1,1
     local zombieStatus = ""
     if self.hasZombieCounter then
-        local newCurrentKills = getPlayer():getZombieKills()
-        local killsRemaining = self.tempGoal - newCurrentKills
-        if killsRemaining <= 0 then
-            -- Quest completed
-            self.currentKills = self.goal
-            r, g, b = 0, 1, 0.5
-            zombieStatus = getText("IGUI_XP_TaskStatus_Completed")
-            killsRemaining = 0  -- Prevent negative kills remaining
+        if questyno2 then
+            if self.kills >= self.goal then
+                self.kills = self.goal
+                r, g, b = 0, 1, 0.5
+                zombieStatus = getText("IGUI_XP_TaskStatus_Completed")
+            else
+                self.kills = getPlayer():getModData().missionProgress.ActionEvent[self.index].kills
+            end
         else
-        -- Quest not yet completed
-        self.currentKills = self.goal - killsRemaining  -- Adjust current kills relative to quest start
+            local newCurrentKills = getPlayer():getZombieKills()
+            local killsRemaining = self.tempGoal - newCurrentKills
+            if killsRemaining <= 0 then
+                -- Quest completed
+                self.currentKills = self.goal
+                r, g, b = 0, 1, 0.5
+                zombieStatus = getText("IGUI_XP_TaskStatus_Completed")
+                killsRemaining = 0  -- Prevent negative kills remaining
+            else
+            -- Quest not yet completed
+            self.currentKills = self.goal - killsRemaining  -- Adjust current kills relative to quest start
+            end
         end
         if not self.objectives then
             self:drawText(getText("IGUI_Objectives"),  objX, needsHeight -20, 1, 1, 1, 1, UIFont.Medium)
             self:drawTextureScaledAspect2(self.zombieTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1)
         
-            self:drawText(zombieStatus.."Zombie: " .. tostring(self.currentKills) .. "/" .. tostring(self.goal),  objX+5, needsHeight   + 4, r, g, b, 1, self.font)
+            self:drawText(zombieStatus.."Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal),  objX+5, needsHeight+ 4, r, g, b, 1, self.font)
         end
     end
 
@@ -642,8 +673,15 @@ function SFQuest_QuestWindow:render()
         
         needsHeight = drawObjectives(self, self.preprocessedObjectives, self.objectives, objX, needsHeight)
         if self.hasZombieCounter then
+            if questyno2 then
+                if self.kills >= self.goal then
+                    self.kills = self.goal
+                else
+                    self.kills = getPlayer():getModData().missionProgress.ActionEvent[self.index].kills
+                end
+            end
             self:drawTextureScaledAspect2(self.zombieTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1)
-            self:drawText(zombieStatus.."Zombie: " .. tostring(self.currentKills) .. "/" .. tostring(self.goal), objX+5, needsHeight + 4, r, g, b, 1, self.font)
+            self:drawText(zombieStatus.."Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal), objX+5, needsHeight + 4, r, g, b, 1, self.font)
             needsHeight = needsHeight - 20
         end
         if hasObjs then
