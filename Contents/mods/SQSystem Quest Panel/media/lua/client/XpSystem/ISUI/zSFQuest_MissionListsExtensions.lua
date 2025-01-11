@@ -76,28 +76,34 @@ function SFQuest_QuestWindow:createChildren()
         if unlocksTable[2] == "killzombies" then
             self.hasZombieCounter = true
             self.goal = tonumber(unlocksTable[3])
-            if questyno2 then
-                for i,v in ipairs(getPlayer():getModData().missionProgress.ActionEvent) do
-                    local commands = luautils.split(v.commands, ";");
-                    if luautils.stringStarts(self.guid, commands[2]) then
-                        self.index = i
-                        self.kills = v.kills
-                        break
-                    else
-                        self.kills = self.goal
+            local actionEvents = getPlayer():getModData().missionProgress.ActionEvent
+            if #actionEvents > 0 then
+                for i,v in ipairs(actionEvents) do
+                    local condition = luautils.split(v.conditions, ";")[1]
+                    if condition == "killzombies" then
+                        local commands = luautils.split(v.commands, ";");
+                        if luautils.stringStarts(self.guid, commands[2]) then
+                            if questyno2 then
+                                self.index = i
+                                self.kills = v.kills
+                                break
+                            else
+                                self.tempGoal = tonumber(luautils.split(v.condition, ";")[2])
+                                self.currentKills = getPlayer():getZombieKills()
+                                -- print("tempGoal: " .. self.tempGoal)
+                                -- print("currentKills: " .. self.currentKills)
+                                -- print("goal: " .. self.goal)
+                                break
+                            end
+                        end
                     end
                 end
             else
-                for i,v in ipairs(getPlayer():getModData().missionProgress.ActionEvent) do
-                    local commands = luautils.split(v.commands, ";");
-                    if luautils.stringStarts(self.guid, commands[2]) then
-                        self.tempGoal = tonumber(luautils.split(v.condition, ";")[2])
-                        self.currentKills = getPlayer():getZombieKills()
-                        -- print("tempGoal: " .. self.tempGoal)
-                        -- print("currentKills: " .. self.currentKills)
-                        -- print("goal: " .. self.goal)
-                        break
-                    end
+                if questyno2 then
+                    self.kills = self.goal
+                else
+                    self.tempGoal = self.goal
+                    self.currentKills = self.goal
                 end
             end
         end
