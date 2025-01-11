@@ -71,43 +71,76 @@ function SFQuest_QuestWindow:createChildren()
 	
 
     -- check if quest has killzombies in actionevent
-    if self.unlocks and luautils.stringStarts(self.unlocks, "actionevent") then -- ex: unlocks = actionevent;killzombies:50; 
+    local function checkQuestKillZombies(self)
+        -- Verifichiamo che self.unlocks ci sia e che cominci con "actionevent"
+        if not self.unlocks or not luautils.stringStarts(self.unlocks, "actionevent") then
+            return
+        end
+    
+        -- Splitto la stringa sostiutendo ":" con ";" e poi dividendo su ";"
+        -- unlocks dovrebbe essere del tipo "actionevent;killzombies;50"
         local unlocksTable = luautils.split(self.unlocks:gsub(":", ";"), ";")
-        if unlocksTable[2] == "killzombies" then
-            self.hasZombieCounter = true
-            self.goal = tonumber(unlocksTable[3])
-            local actionEvents = getPlayer():getModData().missionProgress.ActionEvent
-            if #actionEvents > 0 then
-                for i,v in ipairs(actionEvents) do
-                    local condition = luautils.split(v.conditions, ";")[1]
-                    if condition == "killzombies" then
-                        local commands = luautils.split(v.commands, ";");
-                        if luautils.stringStarts(self.guid, commands[2]) then
-                            if questyno2 then
-                                self.index = i
-                                self.kills = v.kills
-                                break
-                            else
-                                self.tempGoal = tonumber(luautils.split(v.condition, ";")[2])
-                                self.currentKills = getPlayer():getZombieKills()
-                                -- print("tempGoal: " .. self.tempGoal)
-                                -- print("currentKills: " .. self.currentKills)
-                                -- print("goal: " .. self.goal)
-                                break
-                            end
-                        end
-                    end
-                end
+        if unlocksTable[2] ~= "killzombies" then
+            return
+        end
+    
+        -- A questo punto sappiamo che la quest ha "killzombies" in actionevent
+        self.hasZombieCounter = true
+        self.goal = tonumber(unlocksTable[3]) -- es: 50
+    
+        -- Otteniamo la lista di ActionEvent
+        local actionEvents = getPlayer():getModData().missionProgress.ActionEvent
+        if not actionEvents or #actionEvents == 0 then
+            -- Se non ci sono ActionEvents, impostiamo kills o tempGoal direttamente al goal
+            if questyno2 then
+                self.kills = self.goal
             else
-                if questyno2 then
-                    self.kills = self.goal
-                else
-                    self.tempGoal = self.goal
-                    self.currentKills = self.goal
+                self.tempGoal = self.goal
+                self.currentKills = self.goal
+            end
+            return
+        end
+    
+        -- Scorriamo gli actionEvents per vedere se ce n'è uno collegato a questa quest
+        local foundQuest = false
+    
+        for i, v in ipairs(actionEvents) do
+            local conditionParts = luautils.split(v.condition, ";") -- es. "killzombies;50"
+            local conditionName = conditionParts[1]                -- "killzombies"
+    
+            if conditionName == "killzombies" then
+                local commands = luautils.split(v.commands, ";")   -- es. "somecommand;GUIDdellaQuest"
+                if luautils.stringStarts(self.guid, commands[2]) then
+                    -- Trovato l'actionevent che matcha la quest corrente
+                    foundQuest = true
+                    
+                    if questyno2 then
+                        -- Quest "senza contatore" visibile? (dipende dalla tua logica)
+                        self.index = i
+                        self.kills = v.kills
+                    else
+                        -- Quest con contatore
+                        self.tempGoal = tonumber(conditionParts[2])   -- es. 50
+                        self.currentKills = getPlayer():getZombieKills()
+                    end
+                    break
                 end
             end
         end
+    
+        -- Se non abbiamo trovato nulla nel loop, significa che l’actionevent non c’è più,
+        -- ma la quest non è ancora completata. Quindi impostiamo valori di default.
+        if not foundQuest then
+            if questyno2 then
+                self.kills = self.goal
+            else
+                self.tempGoal = self.goal
+                self.currentKills = self.goal
+            end
+        end
     end
+    checkQuestKillZombies(self)
+    
     
 
 	local objectiveHeight  = 15
