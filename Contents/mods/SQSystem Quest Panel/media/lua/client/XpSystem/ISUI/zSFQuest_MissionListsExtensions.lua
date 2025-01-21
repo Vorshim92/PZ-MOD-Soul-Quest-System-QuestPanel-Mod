@@ -116,7 +116,7 @@ function SFQuest_QuestWindow:createChildren()
                     
                     if questyno2 then
                         -- Quest "senza contatore" visibile? (dipende dalla tua logica)
-                        self.index = i
+                        self.index = actionEvents[i]
                         self.kills = v.kills
                     else
                         -- Quest con contatore
@@ -629,7 +629,7 @@ function SFQuest_QuestWindow:render()
                 if self.kills >= self.goal then
                     self.kills = self.goal
                 else
-                    self.kills = getPlayer():getModData().missionProgress.ActionEvent[self.index].kills
+                    self.kills = self.index and self.index.kills or self.kills
                 end
             end
             -- check x position based on measurestringx of title maybe? that is always set on x = self.width/2 ?
@@ -679,7 +679,7 @@ function SFQuest_QuestWindow:render()
                 r, g, b = 0, 1, 0.5
                 zombieStatus = getText("IGUI_XP_TaskStatus_Completed")
             else
-                self.kills = getPlayer():getModData().missionProgress.ActionEvent[self.index].kills
+                self.kills = self.index and self.index.kills or self.kills -- error here ActionEvent[self.index] is nill if you kill last zombie
             end
         else
             local newCurrentKills = getPlayer():getZombieKills()
@@ -716,7 +716,7 @@ function SFQuest_QuestWindow:render()
                 if self.kills >= self.goal then
                     self.kills = self.goal
                 else
-                    self.kills = getPlayer():getModData().missionProgress.ActionEvent[self.index].kills
+                    self.kills = self.index and self.index.kills or self.kills
                 end
             end
             self:drawTextureScaledAspect2(self.zombieTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1)
