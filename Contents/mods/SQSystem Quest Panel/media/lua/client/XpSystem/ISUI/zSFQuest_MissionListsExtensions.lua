@@ -761,7 +761,7 @@ function SFQuest_QuestWindow:new(x, y, item)
         pictureConversion = "media/textures/Picture_Default.png"
     end
 	o.picture = pictureConversion
-	o.awardsrep = item.awardsrep
+	o.awardsrep = item.awardsrep and ((luautils.split(item.awardsrep, ";")[1]) == getPlayer():getModData().missionProgress.Factions[1].factioncode) and item.awardsrep or nil
 	o.awardsitem = item.awardsitem
 	o.awardstask = item.awardstask
 	o.objectives = item.objectives
