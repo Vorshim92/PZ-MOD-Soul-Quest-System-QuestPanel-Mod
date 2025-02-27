@@ -171,7 +171,7 @@ function SFQuest_QuestWindow:createChildren()
                 local needsTable = luautils.split(newString, ";")
                 -- print("needsTable item: " .. needsTable[1])
                 -- print("needsTable count: " .. needsTable[2])
-                if luautils.stringStarts(self.objectives[i].needsitem, "Tag#") then
+                if luautils.stringStarts(self.objectives[i].needsitem, "Tag") then
                     local itemsArray = getScriptManager():getItemsTag(needsTable[1])
                     objectiveData.tag = true
                     objectiveData.tagItems = {}
@@ -243,7 +243,7 @@ function SFQuest_QuestWindow:createChildren()
         local itemId = needsTable[1]
         local itemCount = needsTable[2]
         local needsItemData = {itemId = itemId, itemCount = itemCount or "1"}
-        if luautils.stringStarts(self.needsitem, "Tag#") then
+        if luautils.stringStarts(self.needsitem, "Tag") then
             local itemsArray = getScriptManager():getItemsTag(needsTable[1])
             needsItemData.tag = true
             needsItemData.tagItems = {}
