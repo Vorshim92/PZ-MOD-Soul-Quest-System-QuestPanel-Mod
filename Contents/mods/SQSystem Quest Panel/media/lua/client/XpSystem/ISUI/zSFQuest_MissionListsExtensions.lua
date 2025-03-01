@@ -32,44 +32,44 @@ end
 
 function SFQuest_QuestWindow:createChildren()
 	ISCollapsableWindow.createChildren(self)
-	-- local titleBarHeight = self:titleBarHeight()
+    
+    -- Usa il fattore di scala memorizzato
+    local scale = self.fontSizeScale -- Usa il valore memorizzato invece di richiamare getCore():getOptionFontSize()
+    
+    -- Calcola margini e spaziature in base alla scala
+    local leftMargin = math.floor(25 * scale)
+    local topMargin = math.floor(40 * scale)
+    
     self.rewX = 0
     self.objX = 0
-	-- print("controllo loop in createchildren: " .. self.title)
-	self.richText = ISRichTextPanel:new(25, 40, self.width-110, 100);
-	self.richText.autosetheight = false;
-	self.richText.clip = true
-	self.richText:initialise();
-	self.richText.background = false;
-	self.richText:setAnchorTop(true);
-	self.richText:setAnchorLeft(true);
-	self.richText:setAnchorRight(true);
-	-- self.richText:setAnchorBottom(true);
-	self.richText:setVisible(false);
-	self.richText.backgroundColor  = {r=0.5, g=0.5, b=0.5, a=0.1};
-	self.richText.text = getText(self.dialogueinfo[1]) or "...";
-    self.richText:setMargins(10,10,20,10)
+    
+    -- Crea richText con dimensioni scalate
+    self.richText = ISRichTextPanel:new(leftMargin, topMargin, self.width - math.floor(110 * scale), math.floor(100 * scale));
+    self.richText.autosetheight = false;
+    self.richText.clip = true
+    self.richText:initialise();
+    self.richText.background = false;
+    self.richText:setAnchorTop(true);
+    self.richText:setAnchorLeft(true);
+    self.richText:setAnchorRight(true);
+    self.richText.backgroundColor = {r=0.5, g=0.5, b=0.5, a=0.1};
+    self.richText.text = getText(self.dialogueinfo[1]) or "...";
+    self.richText:setMargins(math.floor(10 * scale), math.floor(10 * scale), math.floor(20 * scale), math.floor(10 * scale))
     self.richText:paginate()
-    -- local lineHeight = getTextManager():getFontFromEnum(self.font):getLineHeight();
-	self.richText:addScrollBars()
-    -- self.richText.vscroll.x + 5
-	self:addChild(self.richText);
-    --test
-	self.originalTitle = self.title
+    self.richText:addScrollBars()
+    self:addChild(self.richText);
+    
+    self.originalTitle = self.title
 
-	if self.picture then
-	-- self.Image = ISButton:new(12, 40, 95, 82, " ", nil, nil);
-	self.picTexture = getTexture(self.picture)
-	-- self.Image:setImage(self.picTexture)
-    -- self.Image:setVisible(true);
-	-- self.Image:setEnable(true);
-	-- self:addChild(self.Image) 
+
+	-- Gestione dell'immagine con dimensioni scalate
+    if self.picture then
+        self.picTexture = getTexture(self.picture)
+        -- Scala la posizione di richText in base alla larghezza dell'immagine
+        self.richText:setX(math.floor(10 * scale) + self.picTexture:getWidth() * scale)
     end
-    self.richText:setX(10 + self.picTexture:getWidth())
-    -- self.richText:setY(40)
 	
 	
-
     -- check if quest has killzombies in actionevent
     local function checkQuestKillZombies(self)
         -- Verifichiamo che self.unlocks ci sia e che cominci con "actionevent"
@@ -143,13 +143,23 @@ function SFQuest_QuestWindow:createChildren()
     
     
 
-	local objectiveHeight  = 15
-	if self.objectives and #self.objectives > 3 then
-		self:setHeight(self.height + (objectiveHeight * (#self.objectives - 3)))
-	end
-	if self.awardsitem and self.awardsrep then
-		self:setHeight(self.height + (objectiveHeight * 2))
-	end
+	-- Aggiunta di un padding extra per gli obiettivi
+    local objectiveHeight = math.floor(15 * scale)
+    local extraPadding = math.floor(10 * scale)  -- Padding extra
+    
+    if self.objectives and #self.objectives > 3 then
+        self:setHeight(self.height + (objectiveHeight * (#self.objectives - 3)) + extraPadding)
+    end
+    if self.awardsitem and self.awardsrep then
+        self:setHeight(self.height + (objectiveHeight * 2) + extraPadding)
+    end
+    
+    -- Per assicurarci che anche con pochi elementi ci sia spazio sufficiente
+    if (self.preprocessedRewards and #self.preprocessedRewards > 0) or 
+       (self.preprocessedNeedsItems and #self.preprocessedNeedsItems > 0) then
+        self:setHeight(self.height + extraPadding)
+    end
+    
 
     -- gathering needsitem from objectives
     self.preprocessedObjectives = {}
@@ -211,21 +221,16 @@ function SFQuest_QuestWindow:createChildren()
                     end
                 end
                 if objectiveData.tag then
-                    self.tagsButton = ISButton:new(self.width - 20, self.height - 20, 20, 20, "", nil, nil, nil, nil);
+                    local buttonSize = math.floor(20 * scale)
+                    self.tagsButton = ISButton:new(
+                        self.width - buttonSize, 
+                        self.height - buttonSize, 
+                        buttonSize, 
+                        buttonSize, 
+                        "", nil, nil, nil, nil);
                     self.tagsButton:setEnable(true)
-                    -- self.tagsButton:setTextureRGBA(1, 1, 1, 1)
-                    -- self.tagsButton:setBackgroundRGBA(0, 0, 0, 0.5)
                     self.tagsButton:noBackground()
-                    -- self.tagsButton:setBorderRGBA(1, 1, 1, 0)
-                    -- self.tagsButton:setBackgroundColorMouseOverRGBA(0,0,0,0.5)
                     self.tagsButton:initialise();
-                    -- self.tagsButton.ztooltip = ObjectTooltip.new()
-                    -- self.tagsButton.ztooltip:setX(0)
-                    -- self.tagsButton.ztooltip:setY(0)
-                    -- self.tagsButton.ztooltip:setVisible(false)
-                    -- self.tagsButton.ztooltip:setOwner(self)
-                    -- self.tagsButton.ztooltip:setVisible(false)
-                    -- self.tagsButton.ztooltip:setAlwaysOnTop(true)
                     self:addChild(self.tagsButton);
                 end
 
@@ -288,21 +293,16 @@ function SFQuest_QuestWindow:createChildren()
         end
         table.insert(self.preprocessedNeedsItems, needsItemData)
         if needsItemData.tag then
-            self.tagsButton = ISButton:new(self.width - 20, self.height - 20, 20, 20, "", nil, nil, nil, nil);
+            local buttonSize = math.floor(20 * scale)
+            self.tagsButton = ISButton:new(
+                self.width - buttonSize, 
+                self.height - buttonSize, 
+                buttonSize, 
+                buttonSize, 
+                "", nil, nil, nil, nil);
             self.tagsButton:setEnable(true)
-            -- self.tagsButton:setTextureRGBA(1, 1, 1, 1)
-            -- self.tagsButton:setBackgroundRGBA(0, 0, 0, 0.5)
             self.tagsButton:noBackground()
-            -- self.tagsButton:setBorderRGBA(1, 1, 1, 0)
-            -- self.tagsButton:setBackgroundColorMouseOverRGBA(0,0,0,0.5)
             self.tagsButton:initialise();
-            -- self.tagsButton.ztooltip = ObjectTooltip.new()
-            -- self.tagsButton.ztooltip:setX(0)
-            -- self.tagsButton.ztooltip:setY(0)
-            -- self.tagsButton.ztooltip:setVisible(false)
-            -- self.tagsButton.ztooltip:setOwner(self)
-			-- self.tagsButton.ztooltip:setVisible(false)
-			-- self.tagsButton.ztooltip:setAlwaysOnTop(true)
             self:addChild(self.tagsButton);
         end
     end
@@ -355,28 +355,43 @@ function SFQuest_QuestWindow:createChildren()
             count = count + 2
         end
     end
-    if self.objX < 120 then
-        self.objX = 120
-    end
-    if self.rewX < 100 then
-        self.rewX = 100
-    end
+    
+    -- Imposta una larghezza massima assoluta per objX e rewX
+    local maxObjX = math.floor(200 * scale)
+    local maxRewX = math.floor(180 * scale)
+    local minObjX = math.floor(120 * scale) -- Scala anche il valore minimo
+    local minRewX = math.floor(100 * scale)
 
-    local rewX = self.objX +60 +50 +20  --+50 offset icona --60 offset for status
-
-  
-    if rewX+self.rewX > self.width then
-        self:setWidth(rewX+self.rewX)
+    self.objX = math.floor(self.objX * scale)
+    if self.objX < minObjX then
+        self.objX = minObjX
+    elseif self.objX > maxObjX then
+        self.objX = maxObjX -- Limita la larghezza massima degli obiettivi
     end
-    if rewX+self.rewX < self.width then
-        self:setWidth(rewX+self.rewX)
+    
+    self.rewX = math.floor(self.rewX * scale)
+    if self.rewX < minRewX then
+        self.rewX = minRewX
+    elseif self.rewX > maxRewX then
+        self.rewX = maxRewX -- Limita la larghezza massima delle ricompense
     end
+    
+    -- Regolazione finale della larghezza della finestra
+    local rewX = self.objX + math.floor(60 * scale) + math.floor(50 * scale) + math.floor(20 * scale)
+    
+    -- Calcola la larghezza desiderata
+    local desiredWidth = rewX + self.rewX
+    
+    -- Imposta una larghezza massima assoluta per la finestra
+    local maxWindowWidth = math.floor(500 * scale)
+    
+    -- Limita la larghezza della finestra
+    desiredWidth = math.min(desiredWidth, maxWindowWidth)
+    
+    -- Imposta la larghezza finale
+    self:setWidth(desiredWidth)
     self.rewX = rewX
-
 end
-
-
-
 
 function SFQuest_QuestWindow:collapse()
     ISCollapsableWindow.collapse(self)
@@ -386,42 +401,54 @@ function SFQuest_QuestWindow:uncollapse()
     ISCollapsableWindow.uncollapse(self)
 end
 
-
-
-
 -- Funzioni helper
-local function drawReputationReward(self, reward, rewX, rewardHeight)
-    self:drawTextureScaledAspect(getTexture("media/textures/Item_PlusRep.png"), rewX-16, rewardHeight, 20, 20, 1, 1, 1, 1)
-    self:drawText(reward.text, rewX+5, rewardHeight + 2, 1, 1, 1, 1, self.font)
-    return rewardHeight - 20
-end
-
-local function drawItemRewards(self, reward, rewX, rewardHeight)
-    if reward.iconTexture then
-        self:drawTextureScaledAspect(reward.iconTexture, rewX-16, rewardHeight, 20, 20, 1, 1, 1, 1)
-    end
-    local itemName = reward.itemName or reward.itemId
-    
-    self:drawText(itemName .. "  x " .. reward.itemCount, rewX+5, rewardHeight + 2, 1, 1, 1, 1, UIFont.Normal)
-    return rewardHeight - 20
-end
-
 
 local function drawRewards(self, rewards, rewX, rewardHeight)
     local hasRewards = false
+    local startHeight = rewardHeight
+    
     for _, reward in ipairs(rewards) do
         if reward.type == "reputation" then
-            rewardHeight = drawReputationReward(self, reward, rewX, rewardHeight)
+            self:drawTextureScaledAspect(getTexture("media/textures/Item_PlusRep.png"), 
+                                      rewX - math.floor(16 * self.fontSizeScale), 
+                                      rewardHeight, 
+                                      math.floor(20 * self.fontSizeScale), 
+                                      math.floor(20 * self.fontSizeScale), 
+                                      1, 1, 1, 1)
+            self:drawText(reward.text, 
+                         rewX + math.floor(5 * self.fontSizeScale), 
+                         rewardHeight + math.floor(2 * self.fontSizeScale), 
+                         1, 1, 1, 1, 
+                         self.font)
         else
-            rewardHeight = drawItemRewards(self, reward, rewX, rewardHeight)
+            if reward.iconTexture then
+                self:drawTextureScaledAspect(reward.iconTexture, 
+                                          rewX - math.floor(16 * self.fontSizeScale), 
+                                          rewardHeight, 
+                                          math.floor(20 * self.fontSizeScale), 
+                                          math.floor(20 * self.fontSizeScale), 
+                                          1, 1, 1, 1)
+            end
+            local itemName = reward.itemName or reward.itemId
+            self:drawText(itemName .. "  x " .. reward.itemCount, 
+                         rewX + math.floor(5 * self.fontSizeScale), 
+                         rewardHeight + math.floor(2 * self.fontSizeScale), 
+                         1, 1, 1, 1, 
+                         UIFont.Normal)
         end
+        
+        rewardHeight = rewardHeight + math.floor(22 * self.fontSizeScale)
         hasRewards = true
     end
+    
     return hasRewards, rewardHeight
 end
 
 
 local function drawNeededItems(self, needsItems, status, objX, needsHeight)
+    local scale = self.fontSizeScale
+    local startHeight = needsHeight
+    
     for i = 1, #needsItems do
         local itemData = needsItems[i]
         local itemName = itemData.itemName or itemData.itemId
@@ -435,7 +462,6 @@ local function drawNeededItems(self, needsItems, status, objX, needsHeight)
             itemName = objstatus .. " " .. itemName
             if status == "Completed" then
                 r, g, b = 0, 1, 0.5
-                
             elseif status == "Obtained" then
                 r, g, b = 1, 1, 0
             end
@@ -444,62 +470,89 @@ local function drawNeededItems(self, needsItems, status, objX, needsHeight)
         if isTag then
             -- Display with expand/collapse functionality
             local displayText = string.format("%s x %s", self.title, itemCount)
-            self:drawText(displayText, objX+5, needsHeight + 2, r, g, b, 1, UIFont.Normal)
+            self:drawText(displayText, 
+                         objX + math.floor(5 * scale), 
+                         needsHeight + math.floor(2 * scale), 
+                         r, g, b, 1, 
+                         UIFont.Normal)
             local titleWidth = getTextManager():MeasureStringX(UIFont.Normal, displayText)
 
             local btnWidth = getTextManager():MeasureStringX(UIFont.Normal, "LISTA")
             self.tagsButton:setTitle("LISTA")
             self.tagsButton.textColor = {r=r, g=g, b=b, a=1.0};
-            self:drawTextureScaledAspect2(iconTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1) -- mettere icona nuova multi items request
-            self.tagsButton:setX(titleWidth+16+objX)
+            self:drawTextureScaledAspect2(iconTexture, 
+                                         objX - math.floor(16 * scale), 
+                                         needsHeight + math.floor(2 * scale), 
+                                         math.floor(16 * scale), 
+                                         math.floor(16 * scale), 
+                                         1, 1, 1, 1)
+            self.tagsButton:setX(titleWidth + math.floor(16 * scale) + objX)
             self.tagsButton:setY(needsHeight)
-            self.tagsButton:setWidth(btnWidth + 10)
+            self.tagsButton:setWidth(btnWidth + math.floor(10 * scale))
             
-
-            -- tooltip
-            -- self.tagsButton.ztooltip:setDesiredPosition(getMouseX(), self:getAbsoluteY() + self:getHeight() + 8)
             if self.tagsButton:isMouseOver() then
-                -- self.tagsButton.ztooltip:setVisible(true)
-                -- local mx = getMouseX() + 24;
-                -- local my = getMouseY() + 24;
-                -- self.tagsButton.ztooltip:setX(mx+11);
-                -- self.tagsButton.ztooltip:setY(my);
-                -- self.tagsButton.ztooltip:setWidth(50)
                 self.tagsButton.textColor = {r=0, g=1.0, b=0, a=1.0};
-                local tooltipHeight = self.tagsButton.height+5
+                local tooltipHeight = self.tagsButton.height + math.floor(5 * scale)
                 local tooltipTitle = "Lista Items Accettati:" -- TODO: create translation
                 local rectWidthMax = math.max(itemData.maxTextWidth, getTextManager():MeasureStringX(UIFont.Large, tooltipTitle))
-                self.tagsButton:drawRect(0, self.tagsButton.height+5, rectWidthMax+30, 20 * #itemData.tagItems+tooltipHeight, 0.5, 0, 0, 0);
-                self.tagsButton:drawRectBorder(0, tooltipHeight, rectWidthMax+30, 20 * #itemData.tagItems+tooltipHeight, 0.5, 1, 1, 1);
-                self.tagsButton:drawText(tooltipTitle, 25, tooltipHeight+2, 1,1,1,1,UIFont.Large)
-                tooltipHeight = tooltipHeight + 20
+                self.tagsButton:drawRect(0, 
+                                       self.tagsButton.height + math.floor(5 * scale), 
+                                       rectWidthMax + math.floor(30 * scale), 
+                                       math.floor(20 * scale) * #itemData.tagItems + tooltipHeight, 
+                                       0.5, 0, 0, 0);
+                self.tagsButton:drawRectBorder(0, 
+                                             tooltipHeight, 
+                                             rectWidthMax + math.floor(30 * scale), 
+                                             math.floor(20 * scale) * #itemData.tagItems + tooltipHeight, 
+                                             0.5, 1, 1, 1);
+                self.tagsButton:drawText(tooltipTitle, 
+                                       math.floor(25 * scale), 
+                                       tooltipHeight + math.floor(2 * scale), 
+                                       1, 1, 1, 1, 
+                                       UIFont.Large)
+                tooltipHeight = tooltipHeight + math.floor(20 * scale)
                 for _, validItem in ipairs(itemData.tagItems) do
-                    -- self.tagsButton.ztooltip:DrawTextureScaledAspect(validItem.itemTexture, 5, tooltipHeight, 16, 16, 1, 1, 1, 1)
-                    -- self.tagsButton.ztooltip:DrawText(UIFont.Normal,validItem.itemName, 25, tooltipHeight, 1,1,1,1);
-                    self.tagsButton:drawTextureScaledAspect(validItem.itemTexture, 5, tooltipHeight+4, 16, 16, 1, 1, 1, 1)
-                    self.tagsButton:drawText(validItem.itemName, 25, tooltipHeight+4, 1,1,1,1,UIFont.Normal)
-                    tooltipHeight = tooltipHeight + 20
+                    self.tagsButton:drawTextureScaledAspect(validItem.itemTexture, 
+                                                         math.floor(5 * scale), 
+                                                         tooltipHeight + math.floor(4 * scale), 
+                                                         math.floor(16 * scale), 
+                                                         math.floor(16 * scale), 
+                                                         1, 1, 1, 1)
+                    self.tagsButton:drawText(validItem.itemName, 
+                                           math.floor(25 * scale), 
+                                           tooltipHeight + math.floor(4 * scale), 
+                                           1, 1, 1, 1, 
+                                           UIFont.Normal)
+                    tooltipHeight = tooltipHeight + math.floor(20 * scale)
                 end 
             else
                 self.tagsButton.textColor = {r=r, g=g, b=b, a=1.0};
-                -- self.tagsButton.ztooltip:setVisible(false)
             end
         else
-            -- if iconTexture
             if iconTexture then
-                self:drawTextureScaledAspect2(iconTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1)
+                self:drawTextureScaledAspect2(iconTexture, 
+                                           objX - math.floor(16 * scale), 
+                                           needsHeight, 
+                                           math.floor(16 * scale), 
+                                           math.floor(16 * scale), 
+                                           1, 1, 1, 1)
             end
-            -- Display single items normally
-            self:drawText(itemName .. " x" .. itemCount, objX+5, needsHeight + 2, r, g, b, 1, UIFont.Normal)
+            self:drawText(itemName .. " x" .. itemCount, 
+                         objX + math.floor(5 * scale), 
+                         needsHeight + math.floor(2 * scale), 
+                         r, g, b, 1, 
+                         UIFont.Normal)
         end
 
-        needsHeight = needsHeight - 20
+        needsHeight = needsHeight + math.floor(22 * scale)
     end
 
     return needsHeight
 end
 
 local function drawObjectives(self, preprocessedObjectives, objectives, objX, needsHeight)
+    local scale = self.fontSizeScale
+    
     for i = 1, #preprocessedObjectives do
         local objective = preprocessedObjectives[i]
         local isTag = objective.tag
@@ -510,8 +563,6 @@ local function drawObjectives(self, preprocessedObjectives, objectives, objX, ne
             if not objective.iconTexture then
                 objective.iconTexture = getTexture("media/textures/clickevent.png")
             end
-
-            
 
             local r, g, b = 1, 1, 1
 
@@ -548,26 +599,52 @@ local function drawObjectives(self, preprocessedObjectives, objectives, objX, ne
                     -- Ensure self.tagsButton is initialized elsewhere in your code
                     self.tagsButton:setTitle("LISTA")
                     self.tagsButton.textColor = { r = r, g = g, b = b, a = 1.0 }
-                    self:drawTextureScaledAspect2(objective.iconTexture, objX - 16, needsHeight + 2, 16, 16, 1, 1, 1, 1)
-                    self.tagsButton:setX(titleWidth + 16 + 20 + objX)
+                    self:drawTextureScaledAspect2(objective.iconTexture, 
+                                               objX - math.floor(16 * scale), 
+                                               needsHeight + math.floor(2 * scale), 
+                                               math.floor(16 * scale), 
+                                               math.floor(16 * scale), 
+                                               1, 1, 1, 1)
+                    self.tagsButton:setX(titleWidth + math.floor(16 * scale) + math.floor(20 * scale) + objX)
                     self.tagsButton:setY(needsHeight)
-                    self.tagsButton:setWidth(btnWidth + 10)
+                    self.tagsButton:setWidth(btnWidth + math.floor(10 * scale))
 
                     -- Tooltip display when hovering over the button
                     if self.tagsButton:isMouseOver() then
                         self.tagsButton.textColor = { r = 0, g = 1.0, b = 0, a = 1.0 }
-                        local tooltipHeight = self.tagsButton.height + 5
+                        local tooltipHeight = self.tagsButton.height + math.floor(5 * scale)
                         local tooltipTitle = "Lista Items Accettati"
                         local rectWidthMax = math.max(objective.maxTextWidth, getTextManager():MeasureStringX(UIFont.Large, tooltipTitle))
-                        self.tagsButton:drawRect(0, tooltipHeight, rectWidthMax + 40, 20 * #objective.tagItems + tooltipHeight, 0.5, 0, 0, 0)
-                        self.tagsButton:drawRectBorder(0, tooltipHeight, rectWidthMax + 40, 20 * #objective.tagItems + tooltipHeight, 0.5, 1, 1, 1)
-                        self.tagsButton:drawText(tooltipTitle, 25, tooltipHeight + 2, 1, 1, 1, 1, UIFont.Large)
-                        tooltipHeight = tooltipHeight + 20
+                        self.tagsButton:drawRect(0, 
+                                              tooltipHeight, 
+                                              rectWidthMax + math.floor(40 * scale), 
+                                              math.floor(20 * scale) * #objective.tagItems + tooltipHeight, 
+                                              0.5, 0, 0, 0)
+                        self.tagsButton:drawRectBorder(0, 
+                                                    tooltipHeight, 
+                                                    rectWidthMax + math.floor(40 * scale), 
+                                                    math.floor(20 * scale) * #objective.tagItems + tooltipHeight, 
+                                                    0.5, 1, 1, 1)
+                        self.tagsButton:drawText(tooltipTitle, 
+                                              math.floor(25 * scale), 
+                                              tooltipHeight + math.floor(2 * scale), 
+                                              1, 1, 1, 1, 
+                                              UIFont.Large)
+                        tooltipHeight = tooltipHeight + math.floor(20 * scale)
 
                         for _, validItem in ipairs(objective.tagItems) do
-                            self.tagsButton:drawTextureScaledAspect(validItem.itemTexture, 5, tooltipHeight + 4, 16, 16, 1, 1, 1, 1)
-                            self.tagsButton:drawText(validItem.itemName, 25, tooltipHeight + 4, 1, 1, 1, 1, UIFont.Normal)
-                            tooltipHeight = tooltipHeight + 20
+                            self.tagsButton:drawTextureScaledAspect(validItem.itemTexture, 
+                                                                math.floor(5 * scale), 
+                                                                tooltipHeight + math.floor(4 * scale), 
+                                                                math.floor(16 * scale), 
+                                                                math.floor(16 * scale), 
+                                                                1, 1, 1, 1)
+                            self.tagsButton:drawText(validItem.itemName, 
+                                                  math.floor(25 * scale), 
+                                                  tooltipHeight + math.floor(4 * scale), 
+                                                  1, 1, 1, 1, 
+                                                  UIFont.Normal)
+                            tooltipHeight = tooltipHeight + math.floor(20 * scale)
                         end
                     else
                         self.tagsButton.textColor = { r = r, g = g, b = b, a = 1.0 }
@@ -575,12 +652,21 @@ local function drawObjectives(self, preprocessedObjectives, objectives, objX, ne
                 end
             end
             if objective.iconTexture then
-                self:drawTextureScaledAspect2(objective.iconTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1)
+                self:drawTextureScaledAspect2(objective.iconTexture, 
+                                           objX - math.floor(16 * scale), 
+                                           needsHeight, 
+                                           math.floor(16 * scale), 
+                                           math.floor(16 * scale), 
+                                           1, 1, 1, 1)
             end
-            -- local objText = objName .. " x" .. itemCount
-            self:drawText(objName, objX + 5, needsHeight + 2, r, g, b, 1, UIFont.Normal)
+            
+            self:drawText(objName, 
+                         objX + math.floor(5 * scale), 
+                         needsHeight + math.floor(2 * scale), 
+                         r, g, b, 1, 
+                         UIFont.Normal)
 
-            needsHeight = needsHeight - 20
+            needsHeight = needsHeight + math.floor(22 * scale)
         end
     end
     return needsHeight
@@ -589,18 +675,10 @@ end
 -- Funzione render
 function SFQuest_QuestWindow:render()
     ISCollapsableWindow.render(self)
-    -- local height = self:getHeight();
-	-- local th = self:titleBarHeight()
-	-- if self.isCollapsed then
-	-- 	height = th;
-    -- end
-    local needsHeight = self.height - self.fontHeight - 10
-    local rewardHeight = self.height - self.fontHeight - 10
-    local hasRewards = false
-    local hasNeeds = false
-    local hasObjs = false
-    local objX = 20
-    
+
+    local scale = self.fontSizeScale
+    local objX = math.floor(20 * scale)
+
 
     if self.task.status then
         self:setTitle(getText("IGUI_XP_TaskStatus_" .. self.task.status) .. " " .. self.originalTitle)
@@ -609,10 +687,11 @@ function SFQuest_QuestWindow:render()
     end
     if self.isCollapsed then
         if self.hasZombieCounter then
-            -- if #self.title > 20 then
-                -- self:setTitle(string.sub(self.title, 1, 10) .. "...")
-            -- end
-            self:drawText(self.title, 25, 1, 1, 1, 1, 1, self.titleBarFont)
+            self:drawText(self.title, 
+                         math.floor(25 * scale), 
+                         1, 
+                         1, 1, 1, 1, 
+                         self.titleBarFont)
             self:setTitle("")
             if not questyno2 then
                 local newCurrentKills = getPlayer():getZombieKills()
@@ -632,105 +711,217 @@ function SFQuest_QuestWindow:render()
                     self.kills = self.index and self.index.kills or self.kills
                 end
             end
-            -- check x position based on measurestringx of title maybe? that is always set on x = self.width/2 ?
-            local titlewidth = getTextManager():MeasureStringX(UIFont.Medium, "Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal))
-            self:drawTextureScaledAspect2(self.zombieTexture, self:getWidth()-titlewidth-20, 2, 16, 16, 1, 1, 1, 1)
-            self:drawText("Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal), self:getWidth()-titlewidth, 3, 1, 1, 1, 1, self.font)
+            -- Scaling per il counter zombie
+            local titleText = "Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal)
+            local titlewidth = getTextManager():MeasureStringX(UIFont.Medium, titleText)
+            self:drawTextureScaledAspect2(self.zombieTexture, 
+                                         self:getWidth() - titlewidth - math.floor(20 * scale), 
+                                         math.floor(2 * scale), 
+                                         math.floor(16 * scale), 
+                                         math.floor(16 * scale), 
+                                         1, 1, 1, 1)
+            self:drawText(titleText, 
+                         self:getWidth() - titlewidth, 
+                         math.floor(3 * scale), 
+                         1, 1, 1, 1, 
+                         self.font)
         end
         return
     end
+    
 
 
     self.richText:setVisible(true)
 
-    self:drawText(self.npcname, 12, 25, 1, 1, 1, 1, UIFont.Medium)
-
+    self:drawText(self.npcname, 
+                  math.floor(12 * scale), 
+                  math.floor(25 * scale), 
+                  1, 1, 1, 1, 
+                  UIFont.Medium)
+    
+    -- Disegna l'immagine con scala
+    local pictureBottom = math.floor(70  * scale) -- Posizione Y di base
     if self.picTexture then
-    self:drawTexture(self.picTexture, 12, 50, 1, 1, 1, 1);
-    self:drawRectBorder(12, 50, self.picTexture:getWidth(), self.picTexture:getHeight(), 0.5, 1, 1, 1);
+        local picX = math.floor(12 * scale)
+        local picY = math.floor(50 * scale)
+        local picWidth = math.floor(self.picTexture:getWidth() * scale)
+        local picHeight = math.floor(self.picTexture:getHeight() * scale)
+        
+        self:drawTextureScaledAspect(self.picTexture, picX, picY, picWidth, picHeight, 1, 1, 1, 1);
+        self:drawRectBorder(picX, picY, picWidth, picHeight, 0.5, 1, 1, 1);
+        pictureBottom = picY + picHeight + math.floor(10 * scale) -- Aggiorna la posizione sotto l'immagine
     end
 
 
+    -- ----------------------
+    -- FASE 1: Precalcola quali sezioni sono visibili
+    -- ----------------------
+    
+    -- Controlla se ci sono ricompense
+    local hasRewards = false
     if self.preprocessedRewards and #self.preprocessedRewards > 0 then
-        hasRewards, rewardHeight = drawRewards(self, self.preprocessedRewards, self.rewX, rewardHeight)
-        if hasRewards then
-            self:drawText(getText("IGUI_Rewards"), self.rewX , rewardHeight -5, 1, 1, 1, 1, UIFont.Medium)
-        end
+        hasRewards = true
     end
-
-    -- Disegna gli oggetti necessari
+    
+    -- Controlla se ci sono oggetti necessari
+    local hasNeeds = false
     if self.preprocessedNeedsItems and #self.preprocessedNeedsItems > 0 then
-        if self.awardsitem or self.awardsrep then
-            needsHeight = rewardHeight + 20
-        end
-        needsHeight = drawNeededItems(self, self.preprocessedNeedsItems, self.task.status, objX, needsHeight)
         hasNeeds = true
     end
-    if hasNeeds then
-        self:drawText(getText("IGUI_Objectives"), objX, needsHeight -5, 1, 1, 1, 1, UIFont.Medium)
-    end
-
-    local r, g, b = 1,1,1
-    local zombieStatus = ""
-    if self.hasZombieCounter then
-        if questyno2 then
-            if self.kills >= self.goal then
-                self.kills = self.goal
-                r, g, b = 0, 1, 0.5
-                zombieStatus = getText("IGUI_XP_TaskStatus_Completed")
-            else
-                self.kills = self.index and self.index.kills or self.kills -- error here ActionEvent[self.index] is nill if you kill last zombie
-            end
-        else
-            local newCurrentKills = getPlayer():getZombieKills()
-            local killsRemaining = self.tempGoal - newCurrentKills
-            if killsRemaining <= 0 then
-                -- Quest completed
-                self.currentKills = self.goal
-                r, g, b = 0, 1, 0.5
-                zombieStatus = getText("IGUI_XP_TaskStatus_Completed")
-                killsRemaining = 0  -- Prevent negative kills remaining
-            else
-            -- Quest not yet completed
-            self.currentKills = self.goal - killsRemaining  -- Adjust current kills relative to quest start
-            end
-        end
-        if not self.objectives then
-            self:drawText(getText("IGUI_Objectives"),  objX, needsHeight -20, 1, 1, 1, 1, UIFont.Medium)
-            self:drawTextureScaledAspect2(self.zombieTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1)
-        
-            self:drawText(zombieStatus.."Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal),  objX+5, needsHeight+ 4, r, g, b, 1, self.font)
-        end
-    end
-
-    -- Disegna gli obiettivi
+    
+    -- Controlla se ci sono obiettivi
+    local hasObjs = false
     if self.preprocessedObjectives and #self.preprocessedObjectives > 0 then
-        hasObjs = true
-        if self.awardsitem or self.awardsrep then
-            needsHeight = rewardHeight + 20
+        local visibleObjectives = 0
+        for i = 1, #self.preprocessedObjectives do
+            if not self.preprocessedObjectives[i].hidden then
+                visibleObjectives = visibleObjectives + 1
+            end
         end
         
-        needsHeight = drawObjectives(self, self.preprocessedObjectives, self.objectives, objX, needsHeight)
+        if visibleObjectives > 0 then
+            hasObjs = true
+        end
+    end
+    
+    -- Controllo se c'è almeno un tipo di obiettivo
+    local hasAnyObjectives = hasNeeds or hasObjs or self.hasZombieCounter
+    
+     -- ----------------------
+    -- FASE 2: Calcola le posizioni iniziali e disegna le intestazioni
+    -- ----------------------
+    
+    -- Calcola l'altezza iniziale delle sezioni (inizia sotto l'immagine/nome)
+    local startY = math.max(math.floor(100 * scale), pictureBottom)
+    local headerY = startY -- Altezza delle intestazioni (uguale per entrambe)
+    
+    -- Disegna le intestazioni allo stesso livello orizzontale
+    if hasRewards then
+        self:drawText(getText("IGUI_Rewards"), 
+                     self.rewX, 
+                     headerY, 
+                     1, 1, 1, 1, 
+                     UIFont.Medium)
+    end
+    
+    if hasAnyObjectives then
+        self:drawText(getText("IGUI_Objectives"), 
+                     objX, 
+                     headerY, 
+                     1, 1, 1, 1, 
+                     UIFont.Medium)
+    end
+    
+    -- ----------------------
+    -- FASE 3: Disegna contenuti
+    -- ----------------------
+
+    -- Posizione iniziale dei contenuti (sotto le intestazioni)
+    local contentY = headerY + math.floor(20 * scale)
+    local rewardsY = contentY -- Posizione per disegnare le ricompense
+    local objectivesY = contentY -- Posizione per disegnare gli obiettivi
+    
+    -- Massima posizione Y raggiunta (per ridimensionare la finestra)
+    local maxY = contentY
+    
+    -- Disegna ricompense
+    if hasRewards then
+        local _, updatedRewardsY = drawRewards(self, self.preprocessedRewards, self.rewX, rewardsY)
+        maxY = math.max(maxY, updatedRewardsY)
+    end
+    
+    -- Disegna obiettivi
+    if hasAnyObjectives then
+        -- Disegna oggetti necessari
+        if hasNeeds then
+            objectivesY = drawNeededItems(self, self.preprocessedNeedsItems, self.task.status, objX, objectivesY)
+            maxY = math.max(maxY, objectivesY)
+        end
+        
+        -- Gestione contatore zombie
+        local r, g, b = 1, 1, 1
+        local zombieStatus = ""
+        
         if self.hasZombieCounter then
+            -- Calcola stato zombie
             if questyno2 then
                 if self.kills >= self.goal then
                     self.kills = self.goal
+                    r, g, b = 0, 1, 0.5
+                    zombieStatus = getText("IGUI_XP_TaskStatus_Completed")
                 else
                     self.kills = self.index and self.index.kills or self.kills
                 end
+            else
+                local newCurrentKills = getPlayer():getZombieKills()
+                local killsRemaining = self.tempGoal - newCurrentKills
+                if killsRemaining <= 0 then
+                    self.currentKills = self.goal
+                    r, g, b = 0, 1, 0.5
+                    zombieStatus = getText("IGUI_XP_TaskStatus_Completed")
+                    killsRemaining = 0
+                else
+                    self.currentKills = self.goal - killsRemaining
+                end
             end
-            self:drawTextureScaledAspect2(self.zombieTexture, objX-16, needsHeight+2, 16, 16, 1, 1, 1, 1)
-            self:drawText(zombieStatus.."Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal), objX+5, needsHeight + 4, r, g, b, 1, self.font)
-            needsHeight = needsHeight - 20
+            
+            -- Disegna il contatore zombie solo se non ci sono obiettivi
+            if not hasObjs then
+                self:drawTextureScaledAspect2(self.zombieTexture, 
+                                            objX - math.floor(16 * scale), 
+                                            objectivesY, 
+                                            math.floor(16 * scale), 
+                                            math.floor(16 * scale), 
+                                            1, 1, 1, 1)
+                
+                self:drawText(zombieStatus .. "Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal), 
+                             objX + math.floor(5 * scale), 
+                             objectivesY + math.floor(2 * scale), 
+                             r, g, b, 1, 
+                             self.font)
+                             
+                objectivesY = objectivesY + math.floor(22 * scale)
+                maxY = math.max(maxY, objectivesY)
+            end
         end
+        
+        -- Disegna obiettivi normali
         if hasObjs then
-            self:drawText(getText("IGUI_Objectives"), objX , needsHeight -5, 1, 1, 1, 1, UIFont.Medium)
+            objectivesY = drawObjectives(self, self.preprocessedObjectives, self.objectives, objX, objectivesY)
+            maxY = math.max(maxY, objectivesY)
+            
+            -- Disegna il contatore zombie dopo gli obiettivi
+            if self.hasZombieCounter then
+                self:drawTextureScaledAspect2(self.zombieTexture, 
+                                            objX - math.floor(16 * scale), 
+                                            objectivesY, 
+                                            math.floor(16 * scale), 
+                                            math.floor(16 * scale), 
+                                            1, 1, 1, 1)
+                                            
+                self:drawText(zombieStatus .. "Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal), 
+                             objX + math.floor(5 * scale), 
+                             objectivesY + math.floor(2 * scale), 
+                             r, g, b, 1, 
+                             self.font)
+                             
+                objectivesY = objectivesY + math.floor(22 * scale)
+                maxY = math.max(maxY, objectivesY)
+            end
         end
     end
-
     
+    -- ----------------------
+    -- FASE 4: Verifica se è necessario ridimensionare la finestra
+    -- ----------------------
+    
+    -- Assicuriamoci che tutto il contenuto sia visibile
+    local contentBottom = maxY + math.floor(10 * scale)
+    if contentBottom > self.height then
+        -- Se il contenuto va oltre l'altezza attuale, ridimensioniamo la finestra
+        self:setHeight(contentBottom)
+    end
 end
-
 
 function SFQuest_QuestWindow:update()
 	ISCollapsableWindow.update(self)
@@ -744,50 +935,70 @@ function SFQuest_QuestWindow:new(x, y, item)
 
 	-- print("controllo loop in new: " .. item.text)
     -- this will be much more easy if we can get from the task the npc's identity, so we can use SF_MissionPanel.instance:getWorldInfo(identity);
-	local width = 420
-	local height = 250
-	local o = ISCollapsableWindow:new(x, y, width, height)
-	setmetatable(o, self)
-	self.__index = self
-	o:setResizable(false);
-	o.fontHeight = getTextManager():getFontHeight(self.font)
-	o.isCollapsed = false
-	-- o.clearStentil = false;
+    local fontSizeValue  = getCore():getOptionFontSize()
+    -- Mappa il valore di font size a un fattore di scala più appropriato
+    local fontSizeScale
+    if fontSizeValue == 1 then      -- Default
+        fontSizeScale = 1.0
+    elseif fontSizeValue == 2 then  -- 1x
+        fontSizeScale = 1.4
+    elseif fontSizeValue == 3 then  -- 2x
+        fontSizeScale = 1.8
+    elseif fontSizeValue == 4 then  -- 3x
+        fontSizeScale = 2.2
+    else                           -- 4x o superiore
+        fontSizeScale = 2.6
+    end
 
-	-- valori quest
-	o.dialogueinfo = item.lore;
-	local pictureConversion = string.gsub(item.texture, 'Item', 'Picture')
+    fontSizeScale = fontSizeScale * 0.8
+
+    local baseWidth = 420
+    local baseHeight = 200
+    local width = math.floor(baseWidth * fontSizeScale)
+    local height = math.floor(baseHeight * fontSizeScale)
+	local o = ISCollapsableWindow:new(x, y, width, height)
+    setmetatable(o, self)
+    self.__index = self
+    o:setResizable(false);
+    o.fontHeight = getTextManager():getFontHeight(self.font)
+    o.isCollapsed = false
+    
+    -- Salva i valori base per future ricalcolazioni
+    o.baseWidth = baseWidth
+    o.baseHeight = baseHeight
+    o.fontSizeScale = fontSizeScale
+    
+    -- Valori quest
+    o.dialogueinfo = item.lore;
+    local pictureConversion = string.gsub(item.texture, 'Item', 'Picture')
     if not pictureConversion then
         pictureConversion = "media/textures/Picture_Default.png"
     end
-	o.picture = pictureConversion
-	o.awardsrep = item.awardsrep and ((luautils.split(item.awardsrep, ";")[1]) == getPlayer():getModData().missionProgress.Factions[1].factioncode) and item.awardsrep or nil
-	o.awardsitem = item.awardsitem
-	o.awardstask = item.awardstask
-	o.objectives = item.objectives
-	o.needsitem = item.needsitem
-	o.unlocks = item.unlocks
-	-- sezione variabili zombiekills counters
-	o.tempGoal = 0;
-	o.goal = 0;
-	o.currentKills = 0;
-	o.hasZombieCounter = false;
+    o.picture = pictureConversion
+    o.awardsrep = item.awardsrep and ((luautils.split(item.awardsrep, ";")[1]) == getPlayer():getModData().missionProgress.Factions[1].factioncode) and item.awardsrep or nil
+    o.awardsitem = item.awardsitem
+    o.awardstask = item.awardstask
+    o.objectives = item.objectives
+    o.needsitem = item.needsitem
+    o.unlocks = item.unlocks
+    
+    -- Sezione variabili zombiekills counters
+    o.tempGoal = 0;
+    o.goal = 0;
+    o.currentKills = 0;
+    o.hasZombieCounter = false;
     o.zombieTexture = getTexture("media/ui/Moodle_Icon_Zombie.png")
-	-- fine sezione
-	o.guid = item.guid
-	o.title = getText(item.text) or "????";
+    
+    o.guid = item.guid
+    o.title = getText(item.text) or "????";
     o.status = item.status or nil
-	-- if item.status then
-	-- 	o.title = getText("IGUI_XP_TaskStatus_" .. item.status) .. getText(item.text);
-	-- end
-	o.titleFont = UIFont.Medium
-	o.titleFontHgt = getTextManager():getFontHeight(o.titleFont)
-	o.npcname = getText(item.title)
+    o.titleFont = UIFont.Medium
+    o.titleFontHgt = getTextManager():getFontHeight(o.titleFont)
+    o.npcname = getText(item.title)
     o.task = item
-	SFQuest_QuestWindow.instance = o;
-	return o
+    SFQuest_QuestWindow.instance = o;
+    return o
 end
-
 
 
 function SFQuest_MissionLists:onMouseDown(x, y)
