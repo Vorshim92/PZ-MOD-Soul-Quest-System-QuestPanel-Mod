@@ -118,6 +118,9 @@ function SFQuest_QuestWindow:createChildren()
                         -- Quest "senza contatore" visibile? (dipende dalla tua logica)
                         self.index = actionEvents[i]
                         self.kills = v.kills
+                        if v.tierlevel then
+                            self.tierlevel = v.tierlevel
+                        end
                     else
                         -- Quest con contatore
                         self.tempGoal = tonumber(conditionParts[2])   -- es. 50
@@ -873,8 +876,9 @@ function SFQuest_QuestWindow:render()
                                             math.floor(16 * scale), 
                                             math.floor(16 * scale), 
                                             1, 1, 1, 1)
-                
-                self:drawText(zombieStatus .. "Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal), 
+
+                local testTierLvl = self.tierlevel and (" - TIER: " .. tostring(self.tierlevel).."+") or ""
+                self:drawText(zombieStatus .. "Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal) .. testTierLvl, 
                              objX + math.floor(5 * scale), 
                              objectivesY + math.floor(2 * scale), 
                              r, g, b, 1, 
@@ -899,7 +903,9 @@ function SFQuest_QuestWindow:render()
                                             math.floor(16 * scale), 
                                             1, 1, 1, 1)
                                             
-                self:drawText(zombieStatus .. "Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal), 
+                local testTierLvl = self.tierlevel and (" - TIER: " .. tostring(self.tierlevel).."+") or ""
+                                            
+                self:drawText(zombieStatus .. "Zombie: " .. tostring(questyno2 and self.kills or self.currentKills) .. "/" .. tostring(self.goal) .. testTierLvl, 
                              objX + math.floor(5 * scale), 
                              objectivesY + math.floor(2 * scale), 
                              r, g, b, 1, 
@@ -949,8 +955,6 @@ function SFQuest_QuestWindow:new(x, y, item)
     else                           -- 4x o superiore
         fontSizeScale = 2.6
     end
-
-    fontSizeScale = fontSizeScale * 0.8
 
     local baseWidth = 420
     local baseHeight = 200
